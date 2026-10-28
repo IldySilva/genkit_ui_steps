@@ -403,19 +403,44 @@ Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with liv
 
 ---
 
-### Step 6: Deploy Everywhere (Flows & Architecture)
-* **Goal:** Explain how Genkit Flows decouple AI logic into reusable services.
+### Step 6: Stateful Agent with Human-in-the-Loop Interrupts (Experimental Beta)
+* **File:** `lib/steps/step6_agent_interrupt.dart` (Runner: `lib/main_step6.dart` or branch `step/6-agents`)
+* **Goal:** Demonstrate enterprise safety with **`ai.defineAgent`** and **Tool Interrupts** (`ToolResult.interrupt(...)`).
 * **Concept:**
-  ```text
-                   GENKIT FLOW (Service Layer)
-                               │
-            ┌──────────────────┼──────────────────┐
-            ▼                  ▼                  ▼
-       Mobile (Flutter)   Web (Flutter)      Cloud Server
-       Local Execution    Local Execution    (Shelf / Dart Frog)
+  When the user asks for a high-risk or destructive operation (e.g., *"Reset all application data and set theme to Red"*), the agent does NOT execute blindly. It yields an **Interrupt**. Flutter intercepts `res.interrupts`, displays a native security confirmation dialog, and upon approval resumes the turn via `chat.resume(...)`.
+* **Code Implementation:**
+  ```dart
+  import 'package:genkit/experimental.dart';
+
+  final resetSettingsTool = ai.defineTool(
+    name: 'resetSettings',
+    description: 'DANGEROUS ACTION: Resets all app settings. Requires human approval.',
+    inputSchema: ResetSettingsInput.$schema,
+    fn: (input, _) async => ToolResult.interrupt({
+      'action': 'resetSettings',
+      'reason': input.reason,
+    }),
+  );
+
+  final assistantAgent = ai.defineAgent(
+    name: 'assistantAgent',
+    system: 'You are a Flutter controller agent with human-in-the-loop approval.',
+    tools: [changeThemeTool, resetSettingsTool],
+    store: InMemorySessionStore(),
+  );
+
+  // Execute in Flutter:
+  final chat = assistantAgent.chat();
+  final res = await chat.send(text: 'Reset all application data');
+  if (res.interrupts.isNotEmpty) {
+    // Show Flutter AlertDialog -> if approved:
+    await chat.resume(
+      respond: [res.interrupts.first.respond({'approved': true})],
+    );
+  }
   ```
 * **Speaker Script:**
-  > *"You don't have to keep AI logic locked inside a single Flutter screen. Wrap it into a Genkit Flow. Run it directly in the app, or deploy it to a server and call it over streaming RPCs."*
+  > *"What happens when the AI wants to do something dangerous? It doesn't run arbitrary code. It triggers an Interrupt. The agent pauses, hands control back to Flutter, we ask the human for approval in a native dialog, and upon confirmation, the agent resumes execution seamlessly."*
 
 ---
 
@@ -460,6 +485,10 @@ flutter run -d macos
 git checkout step/5-local
 flutter run -d macos
 
+# Step 6: Stateful Agent & Interrupts (Human-in-the-Loop)
+git checkout step/6-agents
+flutter run -d macos
+
 # Step 7: Final Consolidated Demo
 git checkout step/7-final
 flutter run -d macos
@@ -475,6 +504,7 @@ flutter run -t lib/main_step2.dart -d macos
 flutter run -t lib/main_step3.dart -d macos
 flutter run -t lib/main_step4.dart -d macos
 flutter run -t lib/main_step5.dart -d macos
+flutter run -t lib/main_step6.dart -d macos
 flutter run -t lib/main_step7.dart -d macos
 
 # Default main (runs Step 7):
