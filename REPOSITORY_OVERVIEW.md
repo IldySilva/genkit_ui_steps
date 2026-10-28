@@ -225,18 +225,24 @@ void setupEdgeGenkit() async {
 
 ```text
 genkit/
-├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, schemantic)
+├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, genkit_middleware, schemantic)
+├── .env                             # Local environment variables (GEMINI_API_KEY) - Git ignored
+├── .env.example                     # Example environment template for team/presentation
 ├── macos/Runner/
 │   ├── DebugProfile.entitlements    # com.apple.security.network.client = true
 │   └── Release.entitlements         # com.apple.security.network.client = true
 ├── lib/
-│   ├── main.dart                    # Launches Step 7 by default
+│   ├── main.dart                    # Launches Step 7 by default (with dotenv initialization)
 │   ├── main_step1.dart              # Direct runner for Step 1
 │   ├── main_step2.dart              # Direct runner for Step 2
 │   ├── main_step3.dart              # Direct runner for Step 3
 │   ├── main_step4.dart              # Direct runner for Step 4
 │   ├── main_step5.dart              # Direct runner for Step 5
+│   ├── main_step6.dart              # Direct runner for Step 6
 │   ├── main_step7.dart              # Direct runner for Step 7
+│   ├── main_step8.dart              # Direct runner for Step 8
+│   ├── main_step9.dart              # Direct runner for Step 9
+│   ├── main_step10.dart             # Direct runner for Step 10
 │   └── steps/
 │       ├── step1_basic.dart         # Step 1: Basic text generation
 │       ├── step2_streaming.dart     # Step 2: Streaming output
@@ -246,13 +252,18 @@ genkit/
 │       ├── step4_tools.g.dart       # Generated Schemantic code
 │       ├── step5_local.dart         # Step 5: Local model integration (llama.cpp)
 │       ├── step5_local.g.dart       # Generated Schemantic code
+│       ├── step6_agent_interrupt.dart   # Step 6: Stateful Agent with Human-in-the-Loop Interrupts
+│       ├── step6_agent_interrupt.g.dart # Generated Schemantic code
 │       ├── step7_final.dart         # Step 7: Consolidated Final Demo
-│       └── step7_final.g.dart       # Generated Schemantic code
+│       ├── step7_final.g.dart       # Generated Schemantic code
+│       ├── step8_embeddings.dart    # Step 8: Vector Embeddings & Semantic Search
+│       ├── step9_middlewares_cancellation.dart # Step 9: Custom Middleware & Stream Cancel
+│       └── step10_multi_agent_sessions.dart    # Step 10: Multi-Agent & Snapshot Sessions
 ```
 
 ---
 
-## 6. The 7 Progressive Steps (Slide-by-Slide Narrative)
+## 6. The 10 Progressive Steps (Slide-by-Slide Narrative)
 
 ```text
 Step 1: Basic AI           -> AI as a remote string function (blocks UI)
@@ -265,9 +276,15 @@ Step 4: Function Calling   -> AI chooses capabilities (changeTheme, navigateTo) 
        ↓
 Step 5: Local AI           -> Same tools & UI, run on-device (llamadart / flutter_edge_ai)
        ↓
-Step 6: Deploy Everywhere  -> Flows on mobile, web, and backend services
+Step 6: Agents & Safety    -> Human-in-the-Loop Interrupts for sensitive actions
        ↓
 Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with live inspector
+       ↓
+Step 8: Vector Embeddings  -> Semantic search & cosine similarity without hallucinations
+       ↓
+Step 9: Middlewares        -> Intercepting models, measuring latency, retries & live cancel
+       ↓
+Step 10: Multi-Agent & Sessions -> Orchestrator delegating to sub-agents & snapshot rewinds
 ```
 
 ---
@@ -445,63 +462,141 @@ Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with liv
 ---
 
 ### Step 7: Final Polished Demo
-* **File:** `lib/steps/step7_final.dart` (Default: `lib/main.dart` or `lib/main_step7.dart`)
-* **Goal:** Consolidated production-grade UI with Material 3 dynamic color scheme, clear prompt suggestions, and an AI Activity Inspector.
-* **System Prompt:**
-  ```text
+* **File:** `lib/steps/step7_final.dart` (Default: `lib/main.dart` or `lib/main_step7.dart` | Branch: `step/7-final`)
+* **Goal:** A cohesive, production-grade UI showcasing natural language control, dynamic theme luminance recalculation, and a live AI Activity Terminal.
+* **Code Implementation:**
+  ```dart
+  // Model prompt instructing tool usage
+  await ai.generate(
+    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    prompt: '''
   You are controlling a Flutter application.
   You have access to tools that can change the theme and navigate between screens.
   When the user asks to change the visual appearance, use the changeTheme tool.
   When the user asks to open another screen, use the navigateTo tool.
+
+  User request:
+  ${_controller.text}
+  ''',
+    toolNames: [changeThemeTool.name, navigateTool.name],
+  );
   ```
+* **UI Layout & Visual Experience:**
+  * Centered Material 3 card (width: 600) with dynamic theme colors.
+  * Fast action buttons (`[ RUN ]`) and prompt suggestions:
+    * *"Make the app dark and gloomy and open settings"*
+    * *"Make it feel like a cyberpunk application"*
+  * Monospace dark terminal showing live execution checkmarks:
+    ```text
+    ✓ changeTheme(#151515)
+    ✓ navigateTo(settings)
+    ```
+* **Speaker Script:**
+  > *"This started as a plain Flutter app. Now we can control navigation, styles, and behaviors using natural human language. And we didn't replace Flutter with AI — we gave Flutter AI capabilities."*
+* **Key Takeaway for Slides:**
+  * "Flutter owns the UI remote control. AI provides the intent translation."
 
 ---
 
 ### Step 8: Vector Embeddings & Semantic Search
 * **File:** `lib/steps/step8_embeddings.dart` (Runner: `lib/main_step8.dart` or branch `step/8-embeddings`)
-* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('text-embedding-004')` to achieve 0-hallucination theme matching via vector similarity in pure Dart.
+* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('text-embedding-004')` to achieve 0-hallucination semantic matching using cosine similarity in pure Dart.
 * **Code Implementation:**
   ```dart
-  // Pre-index theme catalog
+  // 1. Pre-index theme catalog into 768-dimension vectors
   final embeddings = await ai.embed(
-    documents: catalog.map((item) => DocumentData(content: [TextPart(text: item.desc)])).toList(),
+    documents: _catalog.map((item) => DocumentData(content: [TextPart(text: '${item.title}: ${item.description}')])).toList(),
     embedder: googleAI.textEmbedding('text-embedding-004'),
   );
 
-  // When user asks "I feel like a cozy rainy autumn":
+  // 2. Embed user query (e.g. "somewhere cold and rainy")
   final queryEmbed = await ai.embed(
     documents: [DocumentData(content: [TextPart(text: userQuery)])],
     embedder: googleAI.textEmbedding('text-embedding-004'),
   );
 
-  // Compute cosine similarity and pick top match
-  final bestMatch = findClosestVector(queryEmbed.first.embedding, embeddings);
+  // 3. Compute cosine similarity in Dart
+  final similarity = cosineSimilarity(queryEmbed.first.embedding, item.embedding);
   ```
+* **UI Layout & Visual Experience:**
+  * Left: Search input field and list of indexed theme items with live green check indicators.
+  * Right: Real-time progress bars showing similarity percentages (e.g., `Autumn Forest & Rain: 88.4%`, `Cyberpunk Neon: 42.1%`).
+  * Automatically applies the highest-scoring theme without LLM generation latency or risk of made-up hex codes.
 * **Speaker Script:**
-  > *"Not every problem requires generating new text. With Genkit's `ai.embed`, we generate vector embeddings and perform instant semantic matching right inside Dart without hallucination risk."*
+  > *"Not every problem requires generating prose. Sometimes what you need is semantic search. With `ai.embed`, we generate mathematical vector embeddings and compute cosine similarity in pure Dart without hallucination risk."*
+* **Key Takeaway for Slides:**
+  * "Embeddings translate fuzzy human concepts into mathematical distances in milliseconds."
 
 ---
 
 ### Step 9: Custom Middlewares, Retries & Stream Cancellation
 * **File:** `lib/steps/step9_middlewares_cancellation.dart` (Runner: `lib/main_step9.dart` or branch `step/9-middlewares`)
-* **Goal:** Full control over generation lifecycles: cancelling ongoing streams and intercepting requests with custom middleware.
-* **Features:**
-  1. **Cancellation Button:** Clicking "Cancel Stream" aborts the `StreamSubscription` immediately without locking the Flutter UI.
-  2. **Custom Generate Middleware:** Extends `GenerateMiddleware`, measures model latency in milliseconds, and logs execution stages.
-  3. **Built-in `retry()` Middleware:** Automatically retries transient failures (`StatusCode.unavailable`, `resourceExhausted`).
+* **Goal:** Master generation lifecycles: cancelling ongoing streams in real time and intercepting requests with custom Genkit middlewares.
+* **Code Implementation:**
+  ```dart
+  // 1. Custom timing middleware
+  class LatencyLoggingMiddleware extends GenerateMiddleware {
+    @override
+    Future<ModelResponse> model(request, ctx, next) async {
+      final sw = Stopwatch()..start();
+      final res = await next(request, ctx);
+      sw.stop();
+      print('Model latency: ${sw.elapsedMilliseconds}ms');
+      return res;
+    }
+  }
+
+  // 2. Cancellation via StreamSubscription
+  _subscription = ai.generateStream(
+    prompt: prompt,
+    use: [latencyMiddleware(), retry(maxRetries: 2)],
+  ).listen((chunk) => setState(() => text += chunk.text));
+
+  // User hits [Cancel Stream]:
+  await _subscription?.cancel();
+  ```
+* **UI Layout & Visual Experience:**
+  * Real-time generation area with an active **[Cancel Stream]** button.
+  * Side terminal logging middleware lifecycle events:
+    ```text
+    ⏱️ [Middleware] Calling model with 1 message(s)...
+    ⏱️ [Middleware] Model responded in 382ms
+    🛑 [Cancellation] User canceled stream generation mid-way.
+    ```
 * **Speaker Script:**
-  > *"In real apps, users hit 'Cancel' when a stream takes too long, and networks fail. Genkit provides interceptor middlewares and stream control out-of-the-box."*
+  > *"In production, users don't wait forever. If a response takes too long, they hit Cancel. With Genkit Dart, you can abort streams on demand and intercept calls with reusable middlewares for logging, security guardrails, and automated retries."*
+* **Key Takeaway for Slides:**
+  * "Reliability = Interceptors (Middleware) + Fault Tolerance (Retry) + User Control (Cancellation)."
 
 ---
 
 ### Step 10: Multi-Agent Orchestration & Snapshot Persistence
 * **File:** `lib/steps/step10_multi_agent_sessions.dart` (Runner: `lib/main_step10.dart` or branch `step/10-multi-agent`)
-* **Goal:** Sub-agent delegation with `AgentsPlugin` (`package:genkit_middleware`) and session rewinding via immutable snapshots.
-* **Features:**
-  1. **Orchestrator Agent:** Delegates styling to a `stylist` sub-agent and navigation to a `navigator` sub-agent.
-  2. **Snapshot Chain & Rewind:** Every turn records an immutable snapshot (`res.snapshotId`). Clicking "Rewind" in the UI restores the conversation state at that turn using `orchestrator.loadChat(snapshotId: ...)`.
+* **Goal:** Sub-agent delegation using `AgentsPlugin` (`package:genkit_middleware`) and session rewinding via immutable snapshots.
+* **Code Implementation:**
+  ```dart
+  // 1. Specialized Sub-agents
+  final stylist = ai.defineAgent(name: 'stylist', description: 'Color and style expert');
+  final navigator = ai.defineAgent(name: 'navigator', description: 'Screen routing expert');
+
+  // 2. Orchestrator with delegation middleware
+  final orchestrator = ai.defineAgent(
+    name: 'orchestrator',
+    use: [agents(agents: ['stylist', 'navigator'])],
+    store: InMemorySessionStore(),
+  );
+
+  // 3. Rewind to prior turn via snapshot ID:
+  final restoredChat = await orchestrator.loadChat(snapshotId: priorSnapshotId);
+  ```
+* **UI Layout & Visual Experience:**
+  * Multi-turn chat box displaying conversations with the Orchestrator.
+  * Side panel showing the chain of **Session Snapshots** (`Turn 1`, `Turn 2`, `Turn 3`) with a **[Rewind]** button.
+  * Clicking "Rewind" restores the entire agent state and conversation history to that exact moment in time.
 * **Speaker Script:**
-  > *"When applications grow, one monolithic prompt isn't enough. We split responsibilities across specialized sub-agents and preserve immutable snapshots to travel back and forth in conversation time."*
+  > *"As applications grow, one prompt can't do everything. We divide responsibilities among specialized sub-agents and keep immutable session snapshots, allowing users to rewind conversation history at will."*
+* **Key Takeaway for Slides:**
+  * "Orchestrators coordinate specialists. Snapshots provide conversation time-travel."
 
 ---
 
