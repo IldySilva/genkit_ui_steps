@@ -1,5 +1,5 @@
-import 'steps/step7_final.dart' as step7;
+import 'steps/step1_basic.dart' as step1;
 
 void main() {
-  step7.main();
+  step1.main();
 }
