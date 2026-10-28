@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 import 'package:schemantic/schemantic.dart';
@@ -12,10 +13,17 @@ abstract class $ThemeCommand {
 }
 
 final ai = Genkit(
-  plugins: [googleAI(apiKey: const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_API_KEY_HERE'))],
+  plugins: [
+    googleAI(
+      apiKey: dotenv.env['GEMINI_API_KEY'] ??
+          const String.fromEnvironment('GEMINI_API_KEY'),
+    ),
+  ],
 );
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   runApp(const Step3App());
 }
 
