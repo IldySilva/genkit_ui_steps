@@ -54,9 +54,13 @@ base class _ChangeThemeInputTypeFactory
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'ChangeThemeInput',
-    definition: $Schema
-        .object(properties: {'color': $Schema.string()}, required: ['color'])
-        .value,
+    definition: <String, Object?>{
+      'type': 'object',
+      'properties': <String, Object?>{
+        'color': <String, Object?>{'type': 'string'},
+      },
+      'required': ['color'],
+    },
     dependencies: [],
   );
 }
@@ -108,9 +112,13 @@ base class _NavigateInputTypeFactory extends SchemanticType<NavigateInput> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'NavigateInput',
-    definition: $Schema
-        .object(properties: {'screen': $Schema.string()}, required: ['screen'])
-        .value,
+    definition: <String, Object?>{
+      'type': 'object',
+      'properties': <String, Object?>{
+        'screen': <String, Object?>{'type': 'string'},
+      },
+      'required': ['screen'],
+    },
     dependencies: [],
   );
 }

@@ -107,7 +107,7 @@ class _Step4ScreenState extends State<Step4Screen> {
         setState(() {
           _activityLog.add('🔧 changeTheme\ncolor: ${input.color}');
         });
-        return 'Theme changed to ${input.color}';
+        return ToolResult.response('Theme changed to ${input.color}');
       },
     );
 
@@ -122,17 +122,17 @@ class _Step4ScreenState extends State<Step4Screen> {
             setState(() {
               _activityLog.add('🔧 navigateTo(settings)');
             });
-            return 'Navigated to settings';
+            return ToolResult.response('Navigated to settings');
 
           case 'home':
             navigatorKey.currentState?.pushNamed('/home');
             setState(() {
               _activityLog.add('🔧 navigateTo(home)');
             });
-            return 'Navigated to home';
+            return ToolResult.response('Navigated to home');
 
           default:
-            return 'Unknown screen: ${input.screen}';
+            return ToolResult.response('Unknown screen: ${input.screen}');
         }
       },
     );

@@ -96,6 +96,7 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
   @override
   void initState() {
     super.initState();
+
     ai = Genkit(
       plugins: [googleAI(apiKey: const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_API_KEY_HERE'))],
     );
@@ -111,7 +112,7 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
         setState(() {
           _activityLog.add('✓ changeTheme(${input.color})');
         });
-        return 'Theme changed to ${input.color}';
+        return ToolResult.response('Theme changed to ${input.color}');
       },
     );
 
@@ -126,17 +127,17 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
             setState(() {
               _activityLog.add('✓ navigateTo(settings)');
             });
-            return 'Navigated to settings';
+            return ToolResult.response('Navigated to settings');
 
           case 'home':
             navigatorKey.currentState?.pushNamed('/home');
             setState(() {
               _activityLog.add('✓ navigateTo(home)');
             });
-            return 'Navigated to home';
+            return ToolResult.response('Navigated to home');
 
           default:
-            return 'Unknown screen: ${input.screen}';
+            return ToolResult.response('Unknown screen: ${input.screen}');
         }
       },
     );
@@ -247,7 +248,7 @@ ${_controller.text}
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(

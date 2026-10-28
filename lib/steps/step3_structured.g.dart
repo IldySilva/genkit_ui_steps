@@ -61,12 +61,14 @@ base class _ThemeCommandTypeFactory extends SchemanticType<ThemeCommand> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'ThemeCommand',
-    definition: $Schema
-        .object(
-          properties: {'color': $Schema.string(), 'mood': $Schema.string()},
-          required: ['color', 'mood'],
-        )
-        .value,
+    definition: <String, Object?>{
+      'type': 'object',
+      'properties': <String, Object?>{
+        'color': <String, Object?>{'type': 'string'},
+        'mood': <String, Object?>{'type': 'string'},
+      },
+      'required': ['color', 'mood'],
+    },
     dependencies: [],
   );
 }
