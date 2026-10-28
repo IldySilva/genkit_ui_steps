@@ -457,6 +457,54 @@ Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with liv
 
 ---
 
+### Step 8: Vector Embeddings & Semantic Search
+* **File:** `lib/steps/step8_embeddings.dart` (Runner: `lib/main_step8.dart` or branch `step/8-embeddings`)
+* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('text-embedding-004')` to achieve 0-hallucination theme matching via vector similarity in pure Dart.
+* **Code Implementation:**
+  ```dart
+  // Pre-index theme catalog
+  final embeddings = await ai.embed(
+    documents: catalog.map((item) => DocumentData(content: [TextPart(text: item.desc)])).toList(),
+    embedder: googleAI.textEmbedding('text-embedding-004'),
+  );
+
+  // When user asks "I feel like a cozy rainy autumn":
+  final queryEmbed = await ai.embed(
+    documents: [DocumentData(content: [TextPart(text: userQuery)])],
+    embedder: googleAI.textEmbedding('text-embedding-004'),
+  );
+
+  // Compute cosine similarity and pick top match
+  final bestMatch = findClosestVector(queryEmbed.first.embedding, embeddings);
+  ```
+* **Speaker Script:**
+  > *"Not every problem requires generating new text. With Genkit's `ai.embed`, we generate vector embeddings and perform instant semantic matching right inside Dart without hallucination risk."*
+
+---
+
+### Step 9: Custom Middlewares, Retries & Stream Cancellation
+* **File:** `lib/steps/step9_middlewares_cancellation.dart` (Runner: `lib/main_step9.dart` or branch `step/9-middlewares`)
+* **Goal:** Full control over generation lifecycles: cancelling ongoing streams and intercepting requests with custom middleware.
+* **Features:**
+  1. **Cancellation Button:** Clicking "Cancel Stream" aborts the `StreamSubscription` immediately without locking the Flutter UI.
+  2. **Custom Generate Middleware:** Extends `GenerateMiddleware`, measures model latency in milliseconds, and logs execution stages.
+  3. **Built-in `retry()` Middleware:** Automatically retries transient failures (`StatusCode.unavailable`, `resourceExhausted`).
+* **Speaker Script:**
+  > *"In real apps, users hit 'Cancel' when a stream takes too long, and networks fail. Genkit provides interceptor middlewares and stream control out-of-the-box."*
+
+---
+
+### Step 10: Multi-Agent Orchestration & Snapshot Persistence
+* **File:** `lib/steps/step10_multi_agent_sessions.dart` (Runner: `lib/main_step10.dart` or branch `step/10-multi-agent`)
+* **Goal:** Sub-agent delegation with `AgentsPlugin` (`package:genkit_middleware`) and session rewinding via immutable snapshots.
+* **Features:**
+  1. **Orchestrator Agent:** Delegates styling to a `stylist` sub-agent and navigation to a `navigator` sub-agent.
+  2. **Snapshot Chain & Rewind:** Every turn records an immutable snapshot (`res.snapshotId`). Clicking "Rewind" in the UI restores the conversation state at that turn using `orchestrator.loadChat(snapshotId: ...)`.
+* **Speaker Script:**
+  > *"When applications grow, one monolithic prompt isn't enough. We split responsibilities across specialized sub-agents and preserve immutable snapshots to travel back and forth in conversation time."*
+
+---
+
 ## 7. How to Run Each Demo
 
 You can present using either of two workflows:
@@ -492,6 +540,18 @@ flutter run -d macos
 # Step 7: Final Consolidated Demo
 git checkout step/7-final
 flutter run -d macos
+
+# Step 8: Vector Embeddings & Semantic Search
+git checkout step/8-embeddings
+flutter run -d macos
+
+# Step 9: Custom Middlewares & Stream Cancellation
+git checkout step/9-middlewares
+flutter run -d macos
+
+# Step 10: Multi-Agent Delegation & Snapshot Rewind
+git checkout step/10-multi-agent
+flutter run -d macos
 ```
 
 ### Workflow B: Target File Runners (Fastest, stay on `main`)
@@ -506,6 +566,9 @@ flutter run -t lib/main_step4.dart -d macos
 flutter run -t lib/main_step5.dart -d macos
 flutter run -t lib/main_step6.dart -d macos
 flutter run -t lib/main_step7.dart -d macos
+flutter run -t lib/main_step8.dart -d macos
+flutter run -t lib/main_step9.dart -d macos
+flutter run -t lib/main_step10.dart -d macos
 
 # Default main (runs Step 7):
 flutter run -d macos
