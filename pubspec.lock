@@ -291,6 +291,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.5.0"
+  genkit_middleware:
+    dependency: "direct main"
+    description:
+      name: genkit_middleware
+      sha256: d3ea9e967b46a22e386e45a803dd7ca1ea9d4aa4137d806df5ec0310aacf97de
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   glob:
     dependency: transitive
     description:
