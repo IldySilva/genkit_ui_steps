@@ -434,21 +434,51 @@ Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with liv
 
 ## 7. How to Run Each Demo
 
+You can present using either of two workflows:
+
+### Workflow A: Git Branch Switching (Recommended for clean live demos)
+Each step has its own dedicated Git branch where `lib/main.dart` points directly to that step's code. Keys are automatically read from the root `.env` via `flutter_dotenv`:
+
 ```bash
-# Ensure dependencies & schema code generation are ready
-flutter pub get
-dart run build_runner build
+# Step 1: Basic AI
+git checkout step/1-basic
+flutter run -d macos
 
-# Run individual steps:
-flutter run -t lib/main_step1.dart -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
-flutter run -t lib/main_step2.dart -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
-flutter run -t lib/main_step3.dart -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
-flutter run -t lib/main_step4.dart -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
+# Step 2: Streaming
+git checkout step/2-streaming
+flutter run -d macos
+
+# Step 3: Structured Output
+git checkout step/3-structured
+flutter run -d macos
+
+# Step 4: Function Calling (The Wow Moment)
+git checkout step/4-tools
+flutter run -d macos
+
+# Step 5: Local AI (On-Device)
+git checkout step/5-local
+flutter run -d macos
+
+# Step 7: Final Consolidated Demo
+git checkout step/7-final
+flutter run -d macos
+```
+
+### Workflow B: Target File Runners (Fastest, stay on `main`)
+Stay on the `main` branch and pass the specific `-t lib/main_stepX.dart` entry point (keys loaded automatically from `.env`):
+
+```bash
+# Run individual steps without branch switching:
+flutter run -t lib/main_step1.dart -d macos
+flutter run -t lib/main_step2.dart -d macos
+flutter run -t lib/main_step3.dart -d macos
+flutter run -t lib/main_step4.dart -d macos
 flutter run -t lib/main_step5.dart -d macos
-flutter run -t lib/main_step7.dart -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
+flutter run -t lib/main_step7.dart -d macos
 
-# Default main (Step 7):
-flutter run -d macos --dart-define=GEMINI_API_KEY=YOUR_KEY
+# Default main (runs Step 7):
+flutter run -d macos
 ```
 
 ---
