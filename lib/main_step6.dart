@@ -1,4 +1,4 @@
-import 'steps/step6_agent_interrupt.dart' as step;
+import 'steps/step6_embeddings.dart' as step;
 
 void main() {
   step.main();

@@ -1,4 +1,4 @@
-import 'steps/step8_embeddings.dart' as step;
+import 'steps/step8_agent_interrupt.dart' as step;
 
 void main() {
   step.main();
