@@ -393,10 +393,10 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   * The terminal inspects:
     ```text
     AI ACTIVITY
-    🤔 Understanding request...
-    🔧 changeTheme (color: #121212)
-    🔧 navigateTo (screen: settings)
-    ✓ Tool executed
+    [AI] Understanding request...
+    [Tool] changeTheme: #121212
+    [Tool] navigateTo(settings)
+    [Done] Request completed
     ```
   * The Flutter app switches to a dark theme and transitions to the settings screen simultaneously!
 * **Speaker Script:**
@@ -404,20 +404,24 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 
 ---
 
-### Step 5: Local AI (Portability)
-* **File:** `lib/steps/step5_local.dart` (Runner: `lib/main_step5.dart`)
-* **Goal:** Demonstrate that Genkit abstracts the AI backend completely: zero-cloud offline execution on device.
-* **Model:** `Qwen3.5-0.8B-IQ4_NL.gguf` (483 MB, local quantized weights located in `assets/`)
+### Step 5: Local AI (Portability & On-Device Mobile)
+* **File:** `lib/steps/step5_local.dart` (Runner: `lib/main_step5.dart` | Branch: `step/5-local`)
+* **Goal:** Demonstrate that Genkit abstracts the AI backend completely: zero-cloud offline execution on mobile (iOS / Android) and desktop (macOS).
+* **Model:** `Qwen3.5-0.8B-IQ4_NL.gguf` (483 MB, local quantized weights declared in `pubspec.yaml` assets)
 * **Package:** `genkit_llamadart` (v3.5.0) via `llamadart` (llama.cpp Native Assets with Apple Metal acceleration)
+* **Mobile & Bundle Resolution:**
+  * Uses a multi-candidate filesystem resolver that directly locates the model in the iOS App Bundle (`Runner.app/Frameworks/App.framework/flutter_assets/assets/...`), macOS App Bundle (`genkit.app/...`), or development root.
+  * Includes an automatic fallback for Android via `rootBundle` to extract into `Directory.systemTemp`.
+  * Responsive UI: Adapts automatically to mobile phones (`Column` layout with scrollable log) and desktop/tablets (`Row` layout).
 * **Code:**
   ```dart
   final plugin = llamaDart(
     models: [
       LlamaModelDefinition(
-        name: 'local-chat',
-        modelPath: File('assets/Qwen3.5-0.8B-IQ4_NL.gguf').absolute.path,
+        name: 'local-qwen',
+        modelPath: resolvedPath,
         modelParams: const ModelParams(
-          contextSize: 4096,
+          contextSize: 2048,
         ),
         supportsTools: true,
       ),
@@ -427,13 +431,17 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 
   // Exact same generate call and tools as cloud!
   await ai.generate(
-    model: llamaDart.model('local-chat'),
+    model: llamaDart.model('local-qwen'),
+    system: '''You are an AI assistant controlling a Flutter app.
+You have access to tools: changeTheme and navigateTo.
+When the user asks to change theme or appearance, call changeTheme with a hex color.
+When the user asks to open settings or home, call navigateTo.''',
     prompt: prompt,
     tools: [changeThemeTool, navigateTool],
   );
   ```
 * **Speaker Script:**
-  > *"The intelligence can move seamlessly from cloud to device. The tools stay identical. The Flutter state management stays identical. Genkit completely abstracts the runtime, giving you offline privacy and zero server costs."*
+  > *"The intelligence can move seamlessly from cloud to device. The tools stay identical. The Flutter state management stays identical. Genkit completely abstracts the runtime, giving you offline privacy, zero server costs, and blazing-fast on-device response times on mobile."*
 
 ---
 
@@ -498,9 +506,9 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   * Real-time generation area with an active **[Cancel Stream]** button.
   * Side terminal logging middleware lifecycle events:
     ```text
-    ⏱️ [Middleware] Calling model with 1 message(s)...
-    ⏱️ [Middleware] Model responded in 382ms
-    🛑 [Cancellation] User canceled stream generation mid-way.
+    [Middleware] Calling model with 1 message(s)...
+    [Middleware] Model responded in 382ms
+    [Cancelled] User canceled stream generation mid-way.
     ```
 * **Speaker Script:**
   > *"In production, users don't wait forever. If a response takes too long, they hit Cancel. With Genkit Dart, you can abort streams on demand and intercept calls with reusable middlewares for logging, security guardrails, and automated retries."*
@@ -609,8 +617,8 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
     * *"Make it feel like a cyberpunk application"*
   * Monospace dark terminal showing live execution checkmarks:
     ```text
-    ✓ changeTheme(#151515)
-    ✓ navigateTo(settings)
+    [Tool] changeTheme(#151515)
+    [Tool] navigateTo(settings)
     ```
 * **Speaker Script:**
   > *"This is the culmination of our thesis: a complete, production-ready Flutter app where navigation, visual style, and behavior are controlled via natural language without sacrificing UI stability or predictability."*
@@ -671,7 +679,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 
 ## 7. How to Run Each Demo
 
-### ⚡ Quick-Switch via Makefile (Fastest for Live Stage Presentation!)
+### Quick-Switch via Makefile (Fastest for Live Stage Presentation!)
 A presentation `Makefile` is committed across every branch. You can seamlessly jump between steps with short, memorable commands:
 
 ```bash
