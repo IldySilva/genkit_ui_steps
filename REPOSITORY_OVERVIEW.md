@@ -602,7 +602,30 @@ Step 10: Multi-Agent & Sessions -> Orchestrator delegating to sub-agents & snaps
 
 ## 7. How to Run Each Demo
 
-You can present using either of two workflows:
+### ⚡ Quick-Switch via Makefile (Fastest for Live Stage Presentation!)
+A presentation `Makefile` is committed across every branch. You can seamlessly jump between steps with short, memorable commands:
+
+```bash
+make step1    # Switch to Step 1: Basic AI (Call & Response)
+make step2    # Switch to Step 2: Streaming Tokens into UI
+make step3    # Switch to Step 3: Structured Output (schemantic)
+make step4    # Switch to Step 4: Function Calling [THE WOW MOMENT]
+make step5    # Switch to Step 5: Local On-Device AI (llamadart)
+make step6    # Switch to Step 6: Stateful Agent & Interrupts (Human-in-the-Loop)
+make step7    # Switch to Step 7: Final Polished Remote Control
+make step8    # Switch to Step 8: Vector Embeddings & Similarity Search
+make step9    # Switch to Step 9: Custom Middlewares, Retries & Cancellation
+make step10   # Switch to Step 10: Multi-Agent Delegation & Snapshot Rewind
+make main     # Return to main branch
+
+make run      # Run current branch (flutter run -d macos)
+make status   # Check current branch and git status
+make help     # Show the interactive presentation menu
+```
+
+---
+
+You can also present using either of the traditional manual workflows:
 
 ### Workflow A: Git Branch Switching (Recommended for clean live demos)
 Each step has its own dedicated Git branch where `lib/main.dart` points directly to that step's code. Keys are automatically read from the root `.env` via `flutter_dotenv`:
