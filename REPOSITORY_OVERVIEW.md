@@ -230,7 +230,7 @@ genkit/
 ├── assets/
 │   └── Qwen3.5-0.8B-IQ4_NL.gguf     # Local quantized GGUF weights (483MB) for Step 5 on-device AI (git-ignored)
 ├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, genkit_middleware, schemantic)
-├── .env                             # Local environment variables (GEMINI_API_KEY) - Git ignored
+├── .env                             # Local environment variables (GEMINI_API_KEY, GEMINI_MODEL) - Git ignored
 ├── .env.example                     # Example environment template for team/presentation
 ├── macos/Runner/
 │   ├── DebugProfile.entitlements    # com.apple.security.network.client = true
