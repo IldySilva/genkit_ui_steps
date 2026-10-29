@@ -18,6 +18,7 @@ class Step11App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Goes AI - Step 11 (A2UI Generative UI)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -58,7 +59,7 @@ class _Step11ScreenState extends State<Step11Screen> {
         ),
         A2uiPlugin(),
       ],
-      model: googleAI.gemini('gemini-2.5-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash'),
     );
 
     // 2. Initialize GenUI SurfaceController with basic catalog matching plugin ID
@@ -70,27 +71,41 @@ class _Step11ScreenState extends State<Step11Screen> {
     // 3. Listen to surface updates emitted by the AI stream
     _surfaceController.surfaceUpdates.listen((update) {
       if (update is SurfaceAdded) {
-        setState(() {
-          if (!_surfaceIds.contains(update.surfaceId)) {
-            _surfaceIds.add(update.surfaceId);
-            _activityLogs.add('[A2UI] Rendered surface: ${update.surfaceId}');
-          }
-        });
+        if (mounted) {
+          setState(() {
+            if (!_surfaceIds.contains(update.surfaceId)) {
+              _surfaceIds.add(update.surfaceId);
+              _activityLogs.add('[A2UI] Rendered surface: ${update.surfaceId}');
+            }
+          });
+        }
       }
     });
   }
 
-  Future<void> _generateUi() async {
-    final prompt = _controller.text.trim().isEmpty
-        ? 'Show me an interactive weather card for Tokyo with temperature, humidity, and a refresh button.'
-        : _controller.text.trim();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generateUi([String? customPrompt]) async {
+    final prompt = customPrompt ??
+        (_controller.text.trim().isEmpty
+            ? 'Show me an interactive weather card for Tokyo with temperature, humidity, and a refresh button.'
+            : _controller.text.trim());
+
+    if (customPrompt != null) {
+      _controller.text = customPrompt;
+    }
 
     setState(() {
       _isLoading = true;
       _proseOutput = '';
       _surfaceIds.clear();
       _activityLogs.clear();
-      _activityLogs.add('[A2UI] Prompting model with A2UI Generative UI middleware...');
+      _activityLogs
+          .add('[A2UI] Prompting model with A2UI Generative UI middleware...');
     });
 
     try {
@@ -102,6 +117,7 @@ class _Step11ScreenState extends State<Step11Screen> {
       );
 
       await for (final chunk in stream) {
+        if (!mounted) break;
         if (chunk.text.isNotEmpty) {
           setState(() {
             _proseOutput += chunk.text;
@@ -115,134 +131,376 @@ class _Step11ScreenState extends State<Step11Screen> {
         }
       }
 
-      setState(() {
-        _activityLogs.add('[Done] Generative UI streaming complete.');
-      });
+      if (mounted) {
+        setState(() {
+          _activityLogs.add('[Done] Generative UI streaming complete.');
+        });
+      }
     } catch (e) {
-      setState(() {
-        _activityLogs.add('[Error] $e');
-      });
+      if (mounted) {
+        setState(() {
+          _activityLogs.add('[Error] $e');
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Widget _buildActivityPanel({bool isExpanded = false}) {
+    final content = Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'A2UI PROTOCOL ACTIVITY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  fontSize: 12,
+                ),
+              ),
+              if (_activityLogs.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep,
+                      color: Colors.white70, size: 18),
+                  tooltip: 'Clear activity log',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => setState(() => _activityLogs.clear()),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_isLoading) ...[
+            const ClipRRect(
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+              child: LinearProgressIndicator(
+                color: Colors.greenAccent,
+                backgroundColor: Colors.white12,
+                minHeight: 3,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (isExpanded)
+            Expanded(
+              child: ListView.builder(
+                itemCount: _activityLogs.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: Text(
+                      _activityLogs[index],
+                      style: const TextStyle(
+                        color: Colors.greenAccent,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _activityLogs.isEmpty
+                  ? [
+                      const Text(
+                        'No protocol events yet. Tap a quick prompt to generate dynamic surfaces.',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ]
+                  : _activityLogs.map((log) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6.0),
+                        child: Text(
+                          log,
+                          style: const TextStyle(
+                            color: Colors.greenAccent,
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+            ),
+        ],
+      ),
+    );
+
+    return isExpanded ? Expanded(child: content) : content;
+  }
+
+  Widget _buildRenderedSurfaces() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Rendered GenUI Surfaces:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            if (_surfaceIds.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${_surfaceIds.length} active surface(s)',
+                  style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_surfaceIds.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: Center(
+              child: Text(
+                _isLoading
+                    ? 'Generating UI surface in real-time...'
+                    : 'Tap a prompt above to stream declarative Flutter widgets.',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: _surfaceIds.map((id) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Surface(
+                    surfaceContext: _surfaceController.contextFor(id),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('11. Generative UI (A2UI + genui)')),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Padding(
+      appBar: AppBar(
+        title: const Text('11. Generative UI'),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 650;
+
+          final infoCard = Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Icon(Icons.dashboard_customize_outlined,
+                      color: Colors.deepPurple),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'A2UI Generative UI (Dynamic Surfaces)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Streams declarative JSON envelopes via A2UI middleware, rendered live into native Flutter widgets by the GenUI SurfaceController.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          final quickPrompts = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Quick Prompts:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.wb_sunny_outlined, size: 16),
+                    label: const Text('Tokyo Weather'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _generateUi(
+                            'Show me an interactive weather card for Tokyo with temperature, humidity, and a refresh button.'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.shopping_bag_outlined, size: 16),
+                    label: const Text('Running Shoe'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _generateUi(
+                            'Create a product card for running shoes with size selector and Buy button.'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.flight_takeoff, size: 16),
+                    label: const Text('Boarding Pass'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _generateUi(
+                            'Display a flight boarding pass for flight JL006 from Tokyo to New York.'),
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          final promptInput = TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: 'e.g. "Create a product card for running shoes..."',
+              border: const OutlineInputBorder(),
+              suffixIcon: _controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _isLoading ? null : _generateUi(),
+          );
+
+          final generateButton = ElevatedButton.icon(
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: _isLoading ? null : () => _generateUi(),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            label: Text(
+                _isLoading ? 'Streaming widgets...' : 'Stream Generative UI'),
+          );
+
+          if (isMobile) {
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. "Create a product card for running shoes with size selector"',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _isLoading ? null : _generateUi(),
-                  ),
+                  infoCard,
+                  const SizedBox(height: 12),
+                  quickPrompts,
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _generateUi,
-                    child: const Text('Stream Generative UI Surface'),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_proseOutput.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: Text(
-                        _proseOutput,
-                        style: const TextStyle(fontStyle: FontStyle.italic),
-                      ),
+                  promptInput,
+                  const SizedBox(height: 12),
+                  generateButton,
+                  if (_proseOutput.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _proseOutput,
+                      style: const TextStyle(
+                          fontStyle: FontStyle.italic, fontSize: 13),
                     ),
-                  const Divider(),
-                  const Text(
-                    'Rendered GenUI Surface:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: _surfaceIds.isEmpty
-                        ? Center(
-                            child: Text(
-                              _isLoading
-                                  ? 'Generating UI surface in real-time...'
-                                  : 'Click above to let the AI stream dynamic Flutter widgets.',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _surfaceIds.length,
-                            itemBuilder: (context, index) {
-                              final id = _surfaceIds[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                elevation: 3,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Surface(
-                                    surfaceContext: _surfaceController.contextFor(id),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildRenderedSurfaces(),
+                  const SizedBox(height: 16),
+                  _buildActivityPanel(isExpanded: false),
                 ],
               ),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.black87,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'A2UI PROTOCOL ACTIVITY',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 6,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      infoCard,
+                      const SizedBox(height: 12),
+                      quickPrompts,
+                      const SizedBox(height: 16),
+                      promptInput,
+                      const SizedBox(height: 12),
+                      generateButton,
+                      if (_proseOutput.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _proseOutput,
+                          style: const TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      _buildRenderedSurfaces(),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  if (_isLoading)
-                    const LinearProgressIndicator(color: Colors.greenAccent),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _activityLogs.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            _activityLogs[index],
-                            style: const TextStyle(
-                              color: Colors.greenAccent,
-                              fontFamily: 'monospace',
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+              Expanded(
+                flex: 5,
+                child: Container(
+                  color: Colors.black87,
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildActivityPanel(isExpanded: true),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
