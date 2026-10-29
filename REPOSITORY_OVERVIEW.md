@@ -243,6 +243,7 @@ genkit/
 │   ├── main_step8.dart              # Direct runner for Step 8
 │   ├── main_step9.dart              # Direct runner for Step 9
 │   ├── main_step10.dart             # Direct runner for Step 10
+│   ├── main_step11.dart             # Direct runner for Step 11
 │   └── steps/
 │       ├── step1_basic.dart         # Step 1: Basic text generation
 │       ├── step2_streaming.dart     # Step 2: Streaming output
@@ -258,12 +259,13 @@ genkit/
 │       ├── step7_final.g.dart       # Generated Schemantic code
 │       ├── step8_embeddings.dart    # Step 8: Vector Embeddings & Semantic Search
 │       ├── step9_middlewares_cancellation.dart # Step 9: Custom Middleware & Stream Cancel
-│       └── step10_multi_agent_sessions.dart    # Step 10: Multi-Agent & Snapshot Sessions
+│       ├── step10_multi_agent_sessions.dart    # Step 10: Multi-Agent & Snapshot Sessions
+│       └── step11_a2ui.dart         # Step 11: A2UI Generative UI (Dynamic Surfaces via genui)
 ```
 
 ---
 
-## 6. The 10 Progressive Steps (Slide-by-Slide Narrative)
+## 6. The 11 Progressive Steps (Slide-by-Slide Narrative)
 
 ```text
 Step 1: Basic AI           -> AI as a remote string function (blocks UI)
@@ -285,6 +287,8 @@ Step 8: Vector Embeddings  -> Semantic search & cosine similarity without halluc
 Step 9: Middlewares        -> Intercepting models, measuring latency, retries & live cancel
        ↓
 Step 10: Multi-Agent & Sessions -> Orchestrator delegating to sub-agents & snapshot rewinds
+       ↓
+Step 11: A2UI Generative UI     -> Dynamic JSON UI streaming (`genkit_a2ui` + `genui` Surfaces)
 ```
 
 ---
@@ -600,6 +604,56 @@ Step 10: Multi-Agent & Sessions -> Orchestrator delegating to sub-agents & snaps
 
 ---
 
+### Step 11: A2UI Generative UI (Dynamic Surfaces via `genkit_a2ui` & `genui`)
+* **File:** `lib/steps/step11_a2ui.dart` (Runner: `lib/main_step11.dart` or branch `step/11-a2ui`)
+* **Goal:** Understand the fundamental evolution from **UI Remote Control** to true **Generative UI (A2UI - Agent to UI)**.
+* **The Conceptual Distinction (Essential for Presentation!):**
+  * **Remote Control (Steps 4 & 7):** Flutter UI is rigid and pre-compiled. The AI cannot invent a new widget; it can only invoke developer-supplied tools (`changeTheme`, `navigateTo`).
+  * **A2UI Generative UI (Step 11):** The AI dynamically describes the UI itself! It streams structured `application/a2ui+json` envelopes. Flutter's `genui` package listens to these envelopes and renders native Flutter widgets (Cards, Buttons, Forms, Columns) on a dynamic `Surface` widget in real time.
+* **Packages Used:**
+  * `genkit_a2ui: ^0.4.1` (Middleware injecting A2UI prompt schema and parsing streaming parts)
+  * `genui: ^0.10.4` (Flutter widget catalog and dynamic surface renderer)
+  * `a2ui_core: ^0.1.1` (Core A2UI message protocol types)
+* **Code Implementation:**
+  ```dart
+  // 1. Initialize SurfaceController with standard GenUI catalog:
+  final _surfaceController = SurfaceController(catalogs: [CoreCatalogItems.catalog]);
+
+  // 2. Stream generation with a2ui() middleware:
+  final stream = ai.generateStream(
+    model: googleAI.gemini('gemini-2.5-flash'),
+    prompt: 'Create a survey form with a text input and submit button.',
+    use: [a2ui()],
+  );
+
+  // 3. Forward streaming envelopes directly to Flutter SurfaceController:
+  await for (final chunk in stream) {
+    final envelopes = a2uiEnvelopesFromParts(chunk.content);
+    for (final envelope in envelopes) {
+      _surfaceController.handleMessage(A2uiMessage.fromJson(envelope));
+    }
+  }
+
+  // 4. Render dynamic surfaces in the Flutter widget tree:
+  Surface(
+    controller: _surfaceController,
+    surfaceId: surfaceId,
+  );
+  ```
+* **UI Layout & Visual Experience:**
+  * Interactive prompt bar with one-click presets:
+    * *"Create a survey card with questions and a rating bar"*
+    * *"Generate a checkout summary card with a Pay button"*
+    * *"Build a flight boarding pass surface"*
+  * Below the prompt, Flutter dynamically paints native Material widgets sent by Gemini as pure JSON instructions.
+  * Side-by-side terminal inspector showing incoming A2UI envelopes vs rendered UI.
+* **Speaker Script:**
+  > *"So far, AI was controlling our existing Flutter screens like a remote control. But what if the user needs a screen that doesn't exist yet? With A2UI (Agent-to-UI), the AI dynamically designs and streams the UI components in JSON, and Flutter's GenUI catalog renders them natively at runtime."*
+* **Key Takeaway for Slides:**
+  * "Remote Control = AI clicks our buttons. A2UI = AI creates the buttons."
+
+---
+
 ## 7. How to Run Each Demo
 
 ### ⚡ Quick-Switch via Makefile (Fastest for Live Stage Presentation!)
@@ -616,6 +670,7 @@ make step7    # Switch to Step 7: Final Polished Remote Control
 make step8    # Switch to Step 8: Vector Embeddings & Similarity Search
 make step9    # Switch to Step 9: Custom Middlewares, Retries & Cancellation
 make step10   # Switch to Step 10: Multi-Agent Delegation & Snapshot Rewind
+make step11   # Switch to Step 11: A2UI Generative UI (Dynamic Surfaces)
 make main     # Return to main branch
 
 make run      # Run current branch (flutter run -d macos)
@@ -670,6 +725,10 @@ flutter run -d macos
 # Step 10: Multi-Agent Delegation & Snapshot Rewind
 git checkout step/10-multi-agent
 flutter run -d macos
+
+# Step 11: A2UI Generative UI
+git checkout step/11-a2ui
+flutter run -d macos
 ```
 
 ### Workflow B: Target File Runners (Fastest, stay on `main`)
@@ -687,6 +746,7 @@ flutter run -t lib/main_step7.dart -d macos
 flutter run -t lib/main_step8.dart -d macos
 flutter run -t lib/main_step9.dart -d macos
 flutter run -t lib/main_step10.dart -d macos
+flutter run -t lib/main_step11.dart -d macos
 
 # Default main (runs Step 7):
 flutter run -d macos
