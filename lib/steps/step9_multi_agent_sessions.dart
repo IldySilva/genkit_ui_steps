@@ -97,7 +97,7 @@ class _Step9ScreenState extends State<Step9Screen> {
 
     setState(() {
       _isLoading = true;
-      _conversationLog.add('👤 User: $text');
+      _conversationLog.add('User: $text');
     });
 
     try {
@@ -105,12 +105,12 @@ class _Step9ScreenState extends State<Step9Screen> {
       final snapshotId = res.snapshotId ?? 'snap-${DateTime.now().millisecondsSinceEpoch}';
 
       setState(() {
-        _conversationLog.add('🤖 Orchestrator: ${res.text}');
+        _conversationLog.add('Orchestrator: ${res.text}');
         _snapshotHistory.add(snapshotId);
       });
     } catch (e) {
       setState(() {
-        _conversationLog.add('❌ Error: $e');
+        _conversationLog.add('[Error] $e');
       });
     } finally {
       setState(() {
@@ -123,17 +123,17 @@ class _Step9ScreenState extends State<Step9Screen> {
   Future<void> _restoreSnapshot(String snapshotId) async {
     setState(() {
       _isLoading = true;
-      _conversationLog.add('⏳ [Session] Rewinding conversation to snapshot: $snapshotId...');
+      _conversationLog.add('[Session] Rewinding conversation to snapshot: $snapshotId...');
     });
 
     try {
       _chat = await orchestratorAgent.loadChat(snapshotId: snapshotId);
       setState(() {
-        _conversationLog.add('✓ Successfully restored session state from snapshot: $snapshotId');
+        _conversationLog.add('[Session] Successfully restored session state from snapshot: $snapshotId');
       });
     } catch (e) {
       setState(() {
-        _conversationLog.add('❌ Failed to restore snapshot: $e');
+        _conversationLog.add('[Session] Failed to restore snapshot: $e');
       });
     } finally {
       setState(() {
@@ -165,7 +165,7 @@ class _Step9ScreenState extends State<Step9Screen> {
                         itemCount: _conversationLog.length,
                         itemBuilder: (context, index) {
                           final log = _conversationLog[index];
-                          final isUser = log.startsWith('👤');
+                          final isUser = log.startsWith('User:');
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
                             child: Text(
