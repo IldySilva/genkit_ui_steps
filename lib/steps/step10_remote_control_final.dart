@@ -4,7 +4,7 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 import 'package:schemantic/schemantic.dart';
 
-part 'step7_final.g.dart';
+part 'step10_remote_control_final.g.dart';
 
 @Schema()
 abstract class $ChangeThemeInput {
@@ -44,7 +44,7 @@ class FinalDemoAppState extends State<FinalDemoApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Goes AI',
+      title: 'Flutter Goes AI - Step 10 (Master Remote Control)',
       navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

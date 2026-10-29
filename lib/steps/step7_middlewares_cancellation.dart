@@ -7,7 +7,7 @@ import 'package:genkit_google_genai/genkit_google_genai.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  runApp(const Step9App());
+  runApp(const Step7App());
 }
 
 // 1. Custom Generate Middleware that tracks model latency
@@ -36,29 +36,29 @@ class LatencyLoggingMiddleware extends GenerateMiddleware {
   }
 }
 
-class Step9App extends StatelessWidget {
-  const Step9App({super.key});
+class Step7App extends StatelessWidget {
+  const Step7App({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Goes AI - Step 9 (Middlewares & Cancellation)',
+      title: 'Flutter Goes AI - Step 7 (Middlewares & Cancellation)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const Step9Screen(),
+      home: const Step7Screen(),
     );
   }
 }
 
-class Step9Screen extends StatefulWidget {
-  const Step9Screen({super.key});
+class Step7Screen extends StatefulWidget {
+  const Step7Screen({super.key});
 
   @override
-  State<Step9Screen> createState() => _Step9ScreenState();
+  State<Step7Screen> createState() => _Step7ScreenState();
 }
 
-class _Step9ScreenState extends State<Step9Screen> {
+class _Step7ScreenState extends State<Step7Screen> {
   final TextEditingController _controller = TextEditingController();
   String _generatedText = '';
   bool _isStreaming = false;

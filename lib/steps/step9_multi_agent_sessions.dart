@@ -8,32 +8,32 @@ import 'package:genkit_middleware/agents.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  runApp(const Step10App());
+  runApp(const Step9App());
 }
 
-class Step10App extends StatelessWidget {
-  const Step10App({super.key});
+class Step9App extends StatelessWidget {
+  const Step9App({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Goes AI - Step 10 (Multi-Agent & Snapshots)',
+      title: 'Flutter Goes AI - Step 9 (Multi-Agent & Snapshots)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const Step10Screen(),
+      home: const Step9Screen(),
     );
   }
 }
 
-class Step10Screen extends StatefulWidget {
-  const Step10Screen({super.key});
+class Step9Screen extends StatefulWidget {
+  const Step9Screen({super.key});
 
   @override
-  State<Step10Screen> createState() => _Step10ScreenState();
+  State<Step9Screen> createState() => _Step9ScreenState();
 }
 
-class _Step10ScreenState extends State<Step10Screen> {
+class _Step9ScreenState extends State<Step9Screen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
   final List<String> _conversationLog = [];

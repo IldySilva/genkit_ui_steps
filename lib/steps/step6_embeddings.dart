@@ -7,7 +7,7 @@ import 'package:genkit_google_genai/genkit_google_genai.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  runApp(const Step8App());
+  runApp(const Step6App());
 }
 
 class ThemeItem {
@@ -23,14 +23,14 @@ class ThemeItem {
   });
 }
 
-class Step8App extends StatefulWidget {
-  const Step8App({super.key});
+class Step6App extends StatefulWidget {
+  const Step6App({super.key});
 
   @override
-  State<Step8App> createState() => _Step8AppState();
+  State<Step6App> createState() => _Step6AppState();
 }
 
-class _Step8AppState extends State<Step8App> {
+class _Step6AppState extends State<Step6App> {
   Color _themeColor = Colors.deepPurple;
 
   void setTheme(Color color) {
@@ -42,7 +42,7 @@ class _Step8AppState extends State<Step8App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Goes AI - Step 8 (Embeddings & Semantic Search)',
+      title: 'Flutter Goes AI - Step 6 (Embeddings & Semantic Search)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: _themeColor,
@@ -51,7 +51,7 @@ class _Step8AppState extends State<Step8App> {
               : Brightness.dark,
         ),
       ),
-      home: Step8Screen(
+      home: Step6Screen(
         currentColor: _themeColor,
         onColorSelected: setTheme,
       ),
@@ -59,21 +59,21 @@ class _Step8AppState extends State<Step8App> {
   }
 }
 
-class Step8Screen extends StatefulWidget {
+class Step6Screen extends StatefulWidget {
   final Color currentColor;
   final Function(Color) onColorSelected;
 
-  const Step8Screen({
+  const Step6Screen({
     super.key,
     required this.currentColor,
     required this.onColorSelected,
   });
 
   @override
-  State<Step8Screen> createState() => _Step8ScreenState();
+  State<Step6Screen> createState() => _Step6ScreenState();
 }
 
-class _Step8ScreenState extends State<Step8Screen> {
+class _Step6ScreenState extends State<Step6Screen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
   String _statusMessage = 'Catalog not indexed yet.';

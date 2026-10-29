@@ -1,4 +1,4 @@
-import 'steps/step9_middlewares_cancellation.dart' as step;
+import 'steps/step9_multi_agent_sessions.dart' as step;
 
 void main() {
   step.main();

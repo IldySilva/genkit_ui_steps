@@ -5,7 +5,7 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 import 'package:schemantic/schemantic.dart';
 
-part 'step6_agent_interrupt.g.dart';
+part 'step8_agent_interrupt.g.dart';
 
 @Schema()
 abstract class $ChangeThemeInput {
@@ -22,17 +22,17 @@ final navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  runApp(const Step6App());
+  runApp(const Step8App());
 }
 
-class Step6App extends StatefulWidget {
-  const Step6App({super.key});
+class Step8App extends StatefulWidget {
+  const Step8App({super.key});
 
   @override
-  State<Step6App> createState() => Step6AppState();
+  State<Step8App> createState() => Step8AppState();
 }
 
-class Step6AppState extends State<Step6App> {
+class Step8AppState extends State<Step8App> {
   Color _themeColor = Colors.deepPurple;
 
   void changeTheme(String color) {
@@ -50,7 +50,7 @@ class Step6AppState extends State<Step6App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Goes AI - Step 6 (Agents & Interrupts)',
+      title: 'Flutter Goes AI - Step 8 (Agents & Interrupts)',
       navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -60,7 +60,7 @@ class Step6AppState extends State<Step6App> {
               : Brightness.dark,
         ),
       ),
-      home: Step6Screen(
+      home: Step8Screen(
         onThemeChanged: changeTheme,
         onResetTheme: resetTheme,
       ),
@@ -68,21 +68,21 @@ class Step6AppState extends State<Step6App> {
   }
 }
 
-class Step6Screen extends StatefulWidget {
+class Step8Screen extends StatefulWidget {
   final Function(String) onThemeChanged;
   final VoidCallback onResetTheme;
 
-  const Step6Screen({
+  const Step8Screen({
     super.key,
     required this.onThemeChanged,
     required this.onResetTheme,
   });
 
   @override
-  State<Step6Screen> createState() => _Step6ScreenState();
+  State<Step8Screen> createState() => _Step8ScreenState();
 }
 
-class _Step6ScreenState extends State<Step6Screen> {
+class _Step8ScreenState extends State<Step8Screen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
   List<String> _activityLog = [];

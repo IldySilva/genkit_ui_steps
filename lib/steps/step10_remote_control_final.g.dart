@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'step6_agent_interrupt.dart';
+part of 'step10_remote_control_final.dart';
 
 // **************************************************************************
 // SchemaGenerator
@@ -65,29 +65,29 @@ base class _ChangeThemeInputTypeFactory
   );
 }
 
-base class ResetSettingsInput {
-  /// Creates a [ResetSettingsInput] from a JSON map.
-  factory ResetSettingsInput.fromJson(Map<String, dynamic> json) =>
+base class NavigateInput {
+  /// Creates a [NavigateInput] from a JSON map.
+  factory NavigateInput.fromJson(Map<String, dynamic> json) =>
       $schema.parse(json);
 
-  ResetSettingsInput._(this._json);
+  NavigateInput._(this._json);
 
-  ResetSettingsInput({required String reason}) {
-    _json = {'reason': reason};
+  NavigateInput({required String screen}) {
+    _json = {'screen': screen};
   }
 
   late final Map<String, dynamic> _json;
 
-  /// The JSON schema and type descriptor for [ResetSettingsInput].
-  static const SchemanticType<ResetSettingsInput> $schema =
-      _ResetSettingsInputTypeFactory();
+  /// The JSON schema and type descriptor for [NavigateInput].
+  static const SchemanticType<NavigateInput> $schema =
+      _NavigateInputTypeFactory();
 
-  String get reason {
-    return _json['reason'] as String;
+  String get screen {
+    return _json['screen'] as String;
   }
 
-  set reason(String value) {
-    _json['reason'] = value;
+  set screen(String value) {
+    _json['screen'] = value;
   }
 
   @override
@@ -95,30 +95,29 @@ base class ResetSettingsInput {
     return _json.toString();
   }
 
-  /// Serializes this [ResetSettingsInput] to a JSON map.
+  /// Serializes this [NavigateInput] to a JSON map.
   Map<String, dynamic> toJson() {
     return _json;
   }
 }
 
-base class _ResetSettingsInputTypeFactory
-    extends SchemanticType<ResetSettingsInput> {
-  const _ResetSettingsInputTypeFactory();
+base class _NavigateInputTypeFactory extends SchemanticType<NavigateInput> {
+  const _NavigateInputTypeFactory();
 
   @override
-  ResetSettingsInput parse(Object? json) {
-    return ResetSettingsInput._(json as Map<String, dynamic>);
+  NavigateInput parse(Object? json) {
+    return NavigateInput._(json as Map<String, dynamic>);
   }
 
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
-    name: 'ResetSettingsInput',
+    name: 'NavigateInput',
     definition: <String, Object?>{
       'type': 'object',
       'properties': <String, Object?>{
-        'reason': <String, Object?>{'type': 'string'},
+        'screen': <String, Object?>{'type': 'string'},
       },
-      'required': ['reason'],
+      'required': ['screen'],
     },
     dependencies: [],
   );
