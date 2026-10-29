@@ -1,4 +1,4 @@
-.PHONY: help step1 step2 step3 step4 step5 step6 step7 step8 step9 step10 main run analyze status
+.PHONY: help step1 step2 step3 step4 step5 step6 step7 step8 step9 step10 step11 main run analyze status
 
 .DEFAULT_GOAL := help
 
@@ -27,6 +27,7 @@ help:
 	@echo "  $(GREEN)make step8$(RESET)    -> Step 8: Vector Embeddings & Similarity"
 	@echo "  $(GREEN)make step9$(RESET)    -> Step 9: Middlewares, Retries & Cancel"
 	@echo "  $(GREEN)make step10$(RESET)   -> Step 10: Multi-Agent & Snapshot Rewind"
+	@echo "  $(GREEN)make step11$(RESET)   -> Step 11: A2UI Generative UI (Dynamic Surfaces)"
 	@echo "  $(GREEN)make main$(RESET)     -> Return to main branch"
 	@echo ""
 	@echo "$(BOLD)$(YELLOW)Direct Execution Commands (macOS):$(RESET)"
@@ -74,6 +75,10 @@ step9:
 step10:
 	@echo "$(CYAN)➡️  Switching to Step 10: Multi-Agent & Snapshots...$(RESET)"
 	@git checkout step/10-multi-agent
+
+step11:
+	@echo "$(CYAN)➡️  Switching to Step 11: A2UI Generative UI...$(RESET)"
+	@git checkout step/11-a2ui
 
 main:
 	@echo "$(CYAN)➡️  Switching to main branch...$(RESET)"
