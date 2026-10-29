@@ -24,9 +24,11 @@ class Step1App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Goes AI - Step 1',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       home: const Step1Screen(),
     );
@@ -45,54 +47,196 @@ class _Step1ScreenState extends State<Step1Screen> {
   String _answer = '';
   bool _isLoading = false;
 
-  Future<void> _askAi() async {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _askAi([String? customPrompt]) async {
+    final prompt = customPrompt ??
+        (_controller.text.trim().isEmpty
+            ? 'Explain Flutter in one punchy sentence.'
+            : _controller.text.trim());
+
+    if (customPrompt != null) {
+      _controller.text = customPrompt;
+    }
+
     setState(() {
       _isLoading = true;
+      _answer = '';
     });
 
-    final response = await ai.generate(
-      model: googleAI.gemini('gemini-2.5-flash-lite'),
-      prompt: _controller.text.isEmpty
-          ? 'Explain Flutter in one sentence.'
-          : _controller.text,
-    );
+    try {
+      final response = await ai.generate(
+        model: googleAI.gemini('gemini-2.5-flash'),
+        prompt: prompt,
+      );
 
-    setState(() {
-      _answer = response.text;
-      _isLoading = false;
-    });
+      if (mounted) {
+        setState(() {
+          _answer = response.text;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _answer = 'Error: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('1. Basic AI')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                hintText: 'Explain Flutter in one sentence.',
-                border: OutlineInputBorder(),
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.chat_bubble_outline, color: Colors.deepPurple),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Basic AI Generation',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Single-shot string invocation via ai.generate. Simple, but blocks until complete.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onSubmitted: (_) => _askAi(),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Quick Prompts:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.flutter_dash, size: 16),
+                  label: const Text('Explain Flutter'),
+                  onPressed: _isLoading
+                      ? null
+                      : () => _askAi('Explain Flutter in one punchy sentence.'),
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.hub_outlined, size: 16),
+                  label: const Text('What is Genkit?'),
+                  onPressed: _isLoading
+                      ? null
+                      : () => _askAi('What is Google Genkit in simple terms?'),
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.settings_remote, size: 16),
+                  label: const Text('AI as UI Remote'),
+                  onPressed: _isLoading
+                      ? null
+                      : () => _askAi(
+                          'Why use AI as an application UI remote control instead of a chatbot?'),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _askAi,
-              child: const Text('Ask AI'),
-            ),
-            const SizedBox(height: 32),
-            if (_isLoading) const CircularProgressIndicator(),
-            if (!_isLoading && _answer.isNotEmpty) ...[
-              const Text(
-                'AI Response:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            TextField(
+              controller: _controller,
+              decoration: InputDecoration(
+                hintText: 'e.g. Explain Flutter in one sentence.',
+                border: const OutlineInputBorder(),
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _controller.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
               ),
-              const SizedBox(height: 8),
-              Text(_answer),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _askAi(),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              onPressed: _isLoading ? null : () => _askAi(),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              label: Text(_isLoading ? 'Generating...' : 'Ask AI'),
+            ),
+            if (_isLoading) ...[
+              const SizedBox(height: 24),
+              const Center(child: CircularProgressIndicator()),
+            ],
+            if (!_isLoading && _answer.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Card(
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'AI Response',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            tooltip: 'Clear response',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => setState(() => _answer = ''),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Text(
+                        _answer,
+                        style: const TextStyle(fontSize: 14, height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ],
         ),
