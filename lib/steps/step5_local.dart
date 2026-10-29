@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
@@ -108,6 +109,16 @@ class _Step5ScreenState extends State<Step5Screen> {
 
     try {
       final exe = File(Platform.resolvedExecutable);
+
+      // 1. iOS App Bundle: Runner.app/Frameworks/App.framework/flutter_assets/assets/...
+      candidates.add(
+        '${exe.parent.path}/Frameworks/App.framework/flutter_assets/$relativePath',
+      );
+      candidates.add(
+        '${exe.parent.path}/flutter_assets/$relativePath',
+      );
+
+      // 2. macOS App Bundle: genkit.app/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/...
       final contents = exe.parent.parent;
       candidates.addAll([
         '${contents.path}/Frameworks/App.framework/Versions/A/Resources/flutter_assets/$relativePath',
@@ -115,6 +126,7 @@ class _Step5ScreenState extends State<Step5Screen> {
         '${contents.path}/Resources/flutter_assets/$relativePath',
       ]);
 
+      // 3. Walk up from executable (useful in local debug runs)
       Directory? cur = exe.parent;
       for (int i = 0; i < 10 && cur != null; i++) {
         candidates.add('${cur.path}/$relativePath');
@@ -124,6 +136,7 @@ class _Step5ScreenState extends State<Step5Screen> {
       }
     } catch (_) {}
 
+    // 4. Walk up from Directory.current
     try {
       Directory? curDir = Directory.current;
       for (int i = 0; i < 6 && curDir != null; i++) {
@@ -146,9 +159,32 @@ class _Step5ScreenState extends State<Step5Screen> {
     return null;
   }
 
-  void _ensureInitialized() {
+  Future<String?> _resolveModelPathAsync() async {
+    final direct = _resolveModelPath();
+    if (direct != null) return direct;
+
+    // Fallback for Android (where assets are packed inside APK archive):
+    try {
+      final tempFile = File('${Directory.systemTemp.path}/Qwen3.5-0.8B-IQ4_NL.gguf');
+      if (tempFile.existsSync() && tempFile.lengthSync() > 100000000) {
+        return tempFile.path;
+      }
+      final byteData = await rootBundle.load('assets/Qwen3.5-0.8B-IQ4_NL.gguf');
+      final buffer = byteData.buffer;
+      await tempFile.writeAsBytes(
+        buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+        flush: true,
+      );
+      return tempFile.path;
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<void> _ensureInitialized() async {
     if (_ai != null) return;
-    final resolved = _resolveModelPath();
+    var resolved = _resolveModelPath();
+    resolved ??= await _resolveModelPathAsync();
     if (resolved == null) return;
     _modelPath = resolved;
 
@@ -215,12 +251,13 @@ class _Step5ScreenState extends State<Step5Screen> {
   @override
   void initState() {
     super.initState();
-    _ensureInitialized();
-    if (_modelPath != null) {
-      _activityLog.add('✅ Found local model: ${_modelPath!.split('/').last}');
-    } else {
-      _activityLog.add('⚠️ Searching for local GGUF model in app assets...');
-    }
+    _ensureInitialized().then((_) {
+      if (mounted && _modelPath != null) {
+        setState(() {
+          _activityLog.add('✅ Found local model: ${_modelPath!.split('/').last}');
+        });
+      }
+    });
   }
 
   @override
@@ -236,15 +273,15 @@ class _Step5ScreenState extends State<Step5Screen> {
   }
 
   Future<void> _askAiTools() async {
-    _ensureInitialized();
+    await _ensureInitialized();
 
     if (_ai == null || _modelPath == null) {
       setState(() {
         _isLoading = false;
         _activityLog = [
           '❌ Local model file not found.',
-          'ℹ️ Checked candidate paths for "assets/Qwen3.5-0.8B-IQ4_NL.gguf".',
-          'ℹ️ Ensure the file exists in the project assets/ folder.',
+          'ℹ️ Checked iOS/macOS bundle and assets/ folder.',
+          'ℹ️ Please ensure "assets/Qwen3.5-0.8B-IQ4_NL.gguf" is placed in the project assets.',
         ];
       });
       return;
@@ -252,7 +289,7 @@ class _Step5ScreenState extends State<Step5Screen> {
 
     setState(() {
       _isLoading = true;
-      _activityLog = ['🤔 Loading local model & running on-device inference...'];
+      _activityLog.add('🤔 Loading local model & running on-device inference...');
     });
 
     final prompt = _controller.text.isEmpty
@@ -272,8 +309,8 @@ When the user asks to open settings or home, call navigateTo.''',
           _navigateTool!,
         ],
       ).timeout(
-        const Duration(seconds: 25),
-        onTimeout: () => throw TimeoutException('Local model execution timed out after 25s.'),
+        const Duration(seconds: 30),
+        onTimeout: () => throw TimeoutException('Local model execution timed out after 30s.'),
       );
 
       if (response.text.isNotEmpty) {
@@ -303,73 +340,95 @@ When the user asks to open settings or home, call navigateTo.''',
       appBar: AppBar(
         title: const Text('5. Local AI (Qwen 3.5 0.8B via genkit_llamadart)'),
       ),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.offline_bolt, color: Colors.amber),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Offline / On-Device: Running Qwen 3.5 0.8B (IQ4_NL GGUF) via llama.cpp + Metal. No API keys or cloud calls required.',
-                              style: TextStyle(fontSize: 13),
-                            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 650;
+
+          final mainContent = Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.offline_bolt, color: Colors.amber),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Offline / On-Device: Running Qwen 3.5 0.8B (IQ4_NL GGUF) via llama.cpp + Metal. No API keys or cloud calls required.',
+                            style: TextStyle(fontSize: 13),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Change theme to dark gloomy #1a1a1a.',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _askAiTools(),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(
+                    hintText: 'Change theme to dark gloomy #1a1a1a.',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.play_arrow),
-                    onPressed: _isLoading ? null : _askAiTools,
-                    label: const Text('Run Request (Local Model)'),
+                  onSubmitted: (_) => _askAiTools(),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.play_arrow),
+                  onPressed: _isLoading ? null : _askAiTools,
+                  label: const Text('Run Request (Local Model)'),
+                ),
+              ],
+            ),
+          );
+
+          final activityPanel = Container(
+            color: Colors.black87,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('AI ACTIVITY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12.0),
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
-                ],
-              ),
+                Expanded(
+                  child: ListView(
+                    children: _activityLog
+                        .map((log) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Text(log, style: const TextStyle(color: Colors.greenAccent, fontSize: 13)),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ],
             ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.black87,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('AI ACTIVITY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  if (_isLoading) const CircularProgressIndicator(color: Colors.white),
-                  const SizedBox(height: 16),
-                  ..._activityLog.map((log) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Text(log, style: const TextStyle(color: Colors.greenAccent)),
-                      )),
-                ],
-              ),
-            ),
-          ),
-        ],
+          );
+
+          if (isMobile) {
+            return Column(
+              children: [
+                Expanded(flex: 3, child: SingleChildScrollView(child: mainContent)),
+                Expanded(flex: 3, child: activityPanel),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(flex: 2, child: mainContent),
+              Expanded(flex: 1, child: activityPanel),
+            ],
+          );
+        },
       ),
     );
   }
