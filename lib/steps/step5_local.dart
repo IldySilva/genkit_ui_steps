@@ -338,7 +338,7 @@ When the user asks to open settings or home, call navigateTo.''',
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('5. Local AI (Qwen 3.5 0.8B via genkit_llamadart)'),
+        title: const Text('5. Local AI'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
