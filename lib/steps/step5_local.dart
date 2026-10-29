@@ -87,40 +87,76 @@ class _Step5ScreenState extends State<Step5Screen> {
   bool _isLoading = false;
   List<String> _activityLog = [];
 
-  late final LlamaDartPlugin _plugin;
-  late final Genkit ai;
-  late final Tool changeThemeTool;
-  late final Tool navigateTool;
+  LlamaDartPlugin? _plugin;
+  Genkit? _ai;
+  Tool? _changeThemeTool;
+  Tool? _navigateTool;
+  String? _modelPath;
 
-  String _resolveModelPath() {
+  String? _resolveModelPath() {
     const relativePath = 'assets/Qwen3.5-0.8B-IQ4_NL.gguf';
-    final candidates = [
+
+    final candidates = <String>[
       relativePath,
       '${Directory.current.path}/$relativePath',
-      // macOS App Bundle locations
-      '${File(Platform.resolvedExecutable).parent.path}/../Frameworks/App.framework/Resources/flutter_assets/$relativePath',
-      '${File(Platform.resolvedExecutable).parent.path}/../Resources/flutter_assets/$relativePath',
     ];
 
-    for (final candidate in candidates) {
-      final file = File(candidate);
-      if (file.existsSync()) {
-        return file.absolute.path;
-      }
+    final pwd = Platform.environment['PWD'];
+    if (pwd != null) {
+      candidates.add('$pwd/$relativePath');
     }
-    return File(relativePath).absolute.path;
+
+    try {
+      final exe = File(Platform.resolvedExecutable);
+      final contents = exe.parent.parent;
+      candidates.addAll([
+        '${contents.path}/Frameworks/App.framework/Versions/A/Resources/flutter_assets/$relativePath',
+        '${contents.path}/Frameworks/App.framework/Resources/flutter_assets/$relativePath',
+        '${contents.path}/Resources/flutter_assets/$relativePath',
+      ]);
+
+      Directory? cur = exe.parent;
+      for (int i = 0; i < 10 && cur != null; i++) {
+        candidates.add('${cur.path}/$relativePath');
+        final parent = cur.parent;
+        if (parent.path == cur.path) break;
+        cur = parent;
+      }
+    } catch (_) {}
+
+    try {
+      Directory? curDir = Directory.current;
+      for (int i = 0; i < 6 && curDir != null; i++) {
+        candidates.add('${curDir.path}/$relativePath');
+        final parent = curDir.parent;
+        if (parent.path == curDir.path) break;
+        curDir = parent;
+      }
+    } catch (_) {}
+
+    for (final candidate in candidates) {
+      try {
+        final file = File(candidate);
+        if (file.existsSync()) {
+          return file.resolveSymbolicLinksSync();
+        }
+      } catch (_) {}
+    }
+
+    return null;
   }
 
-  @override
-  void initState() {
-    super.initState();
+  void _ensureInitialized() {
+    if (_ai != null) return;
+    final resolved = _resolveModelPath();
+    if (resolved == null) return;
+    _modelPath = resolved;
 
-    final modelPath = _resolveModelPath();
     _plugin = llamaDart(
       models: [
         LlamaModelDefinition(
           name: 'local-qwen',
-          modelPath: modelPath,
+          modelPath: _modelPath!,
           modelParams: const ModelParams(
             contextSize: 2048,
           ),
@@ -129,13 +165,13 @@ class _Step5ScreenState extends State<Step5Screen> {
       ],
     );
 
-    ai = Genkit(
+    _ai = Genkit(
       plugins: [
-        _plugin,
+        _plugin!,
       ],
     );
 
-    changeThemeTool = ai.defineTool(
+    _changeThemeTool = _ai!.defineTool(
       name: 'changeTheme',
       description:
           'Changes the visual theme of the Flutter application. Accepts a hex color string like #121212.',
@@ -149,7 +185,7 @@ class _Step5ScreenState extends State<Step5Screen> {
       },
     );
 
-    navigateTool = ai.defineTool(
+    _navigateTool = _ai!.defineTool(
       name: 'navigateTo',
       description: 'Navigates to another screen in the Flutter application ("settings" or "home").',
       inputSchema: NavigateInput.$schema,
@@ -177,20 +213,38 @@ class _Step5ScreenState extends State<Step5Screen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _ensureInitialized();
+    if (_modelPath != null) {
+      _activityLog.add('✅ Found local model: ${_modelPath!.split('/').last}');
+    } else {
+      _activityLog.add('⚠️ Searching for local GGUF model in app assets...');
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
-    unawaited(_plugin.dispose());
-    unawaited(ai.shutdown());
+    if (_plugin != null) {
+      unawaited(_plugin!.dispose());
+    }
+    if (_ai != null) {
+      unawaited(_ai!.shutdown());
+    }
     super.dispose();
   }
 
   Future<void> _askAiTools() async {
-    final modelFile = File(_resolveModelPath());
-    if (!modelFile.existsSync()) {
+    _ensureInitialized();
+
+    if (_ai == null || _modelPath == null) {
       setState(() {
+        _isLoading = false;
         _activityLog = [
-          '❌ Local model file not found at: ${modelFile.path}',
-          'ℹ️ Please ensure "assets/Qwen3.5-0.8B-IQ4_NL.gguf" is placed in the project root.',
+          '❌ Local model file not found.',
+          'ℹ️ Checked candidate paths for "assets/Qwen3.5-0.8B-IQ4_NL.gguf".',
+          'ℹ️ Ensure the file exists in the project assets/ folder.',
         ];
       });
       return;
@@ -206,7 +260,7 @@ class _Step5ScreenState extends State<Step5Screen> {
         : _controller.text;
 
     try {
-      final response = await ai.generate(
+      final response = await _ai!.generate(
         model: llamaDart.model('local-qwen'),
         system: '''You are an AI assistant controlling a Flutter app.
 You have access to tools: changeTheme and navigateTo.
@@ -214,8 +268,8 @@ When the user asks to change theme or appearance, call changeTheme with a hex co
 When the user asks to open settings or home, call navigateTo.''',
         prompt: prompt,
         tools: [
-          changeThemeTool,
-          navigateTool,
+          _changeThemeTool!,
+          _navigateTool!,
         ],
       ).timeout(
         const Duration(seconds: 25),
