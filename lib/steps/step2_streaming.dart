@@ -92,7 +92,7 @@ class _Step2ScreenState extends State<Step2Screen>
 
     try {
       final stream = ai.generateStream(
-        model: googleAI.gemini('gemini-3.1-flash-lite'),
+        model: googleAI.gemini('gemini-2.5-flash-lite'),
         prompt: prompt,
       );
 

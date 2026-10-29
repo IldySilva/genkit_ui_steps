@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:genkit/genkit.dart';
@@ -157,18 +158,27 @@ class _Step4ScreenState extends State<Step4Screen> {
         : _controller.text;
 
     try {
-      await ai.generate(
-        model: googleAI.gemini('gemini-3.1-flash-lite'),
+      final response = await ai.generate(
+        model: googleAI.gemini('gemini-2.5-flash-lite'),
         prompt: prompt,
-        toolNames: [changeThemeTool.name, navigateTool.name],
+        tools: [changeThemeTool, navigateTool],
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('Request timed out. Please check your network connection.'),
       );
 
-      setState(() {
-        _activityLog.add('✓ Tool executed');
-      });
+      if (response.finishReason == 'failed') {
+        setState(() {
+          _activityLog.add('⚠️ ${response.finishMessage ?? "Model execution failed"}');
+        });
+      } else {
+        setState(() {
+          _activityLog.add('✓ Request completed');
+        });
+      }
     } catch (e) {
       setState(() {
-        _activityLog.add('Error: $e');
+        _activityLog.add('❌ Error: $e');
       });
     } finally {
       setState(() {

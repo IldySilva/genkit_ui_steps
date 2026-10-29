@@ -57,7 +57,7 @@ class _Step9ScreenState extends State<Step9Screen> {
         ),
         AgentsPlugin(),
       ],
-      model: googleAI.gemini('gemini-3.1-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash-lite'),
     );
 
     // 1. Sub-agent: Stylist

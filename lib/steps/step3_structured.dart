@@ -65,7 +65,7 @@ class _Step3ScreenState extends State<Step3Screen> {
         : _controller.text;
 
     final response = await ai.generate(
-      model: googleAI.gemini('gemini-3.1-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash-lite'),
       prompt:
           '''
 The user wants to customize the application.

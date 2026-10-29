@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:genkit/genkit.dart';
@@ -160,8 +161,8 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
     });
 
     try {
-      await ai.generate(
-        model: googleAI.gemini('gemini-3.1-flash-lite'),
+      final response = await ai.generate(
+        model: googleAI.gemini('gemini-2.5-flash-lite'),
         prompt:
             '''
 You are controlling a Flutter application.
@@ -178,11 +179,24 @@ use the navigateTo tool.
 User request:
 ${_controller.text}
 ''',
-        toolNames: [changeThemeTool.name, navigateTool.name],
+        tools: [changeThemeTool, navigateTool],
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('Request timed out. Please check your network connection.'),
       );
+
+      if (response.finishReason == 'failed') {
+        setState(() {
+          _activityLog.add('⚠️ ${response.finishMessage ?? "Model execution failed"}');
+        });
+      } else {
+        setState(() {
+          _activityLog.add('✓ Request completed');
+        });
+      }
     } catch (e) {
       setState(() {
-        _activityLog.add('Error: $e');
+        _activityLog.add('❌ Error: $e');
       });
     } finally {
       setState(() {

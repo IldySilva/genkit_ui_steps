@@ -79,7 +79,7 @@ class _Step7ScreenState extends State<Step7Screen> {
               const String.fromEnvironment('GEMINI_API_KEY'),
         ),
       ],
-      model: googleAI.gemini('gemini-3.1-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash-lite'),
     );
 
     // Register custom middleware definition
