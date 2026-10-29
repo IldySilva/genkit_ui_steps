@@ -42,7 +42,8 @@ class _Step6AppState extends State<Step6App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Goes AI - Step 6 (Embeddings & Semantic Search)',
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter Goes AI - Step 6 (Embeddings)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: _themeColor,
@@ -82,27 +83,32 @@ class _Step6ScreenState extends State<Step6Screen> {
   final List<ThemeItem> _catalog = [
     ThemeItem(
       title: 'Cyberpunk Neon',
-      description: 'Futuristic high-tech aesthetic with neon violet, electric pink and dark alleys.',
+      description:
+          'Futuristic high-tech aesthetic with neon violet, electric pink and dark alleys.',
       color: const Color(0xFFE040FB),
     ),
     ThemeItem(
       title: 'Ocean Deep Dive',
-      description: 'Calm marine depths, deep turquoise blue waters and oceanic tranquility.',
+      description:
+          'Calm marine depths, deep turquoise blue waters and oceanic tranquility.',
       color: const Color(0xFF00B0FF),
     ),
     ThemeItem(
       title: 'Autumn Forest & Rain',
-      description: 'Cozy autumn atmosphere, warm falling leaves, amber wood and rainy evening warmth.',
+      description:
+          'Cozy autumn atmosphere, warm falling leaves, amber wood and rainy evening warmth.',
       color: const Color(0xFFFF6D00),
     ),
     ThemeItem(
       title: 'Minimalist Charcoal',
-      description: 'Strict monochrome dark charcoal, clean minimalist productivity and shadows.',
+      description:
+          'Strict monochrome dark charcoal, clean minimalist productivity and shadows.',
       color: const Color(0xFF37474F),
     ),
     ThemeItem(
       title: 'Emerald Zen Garden',
-      description: 'Relaxing herbal green moss, Japanese garden stone paths and peaceful bamboo.',
+      description:
+          'Relaxing herbal green moss, Japanese garden stone paths and peaceful bamboo.',
       color: const Color(0xFF00C853),
     ),
   ];
@@ -121,6 +127,12 @@ class _Step6ScreenState extends State<Step6Screen> {
       ],
     );
     _indexCatalog();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   // Pre-compute embeddings for the catalog using ai.embed
@@ -146,17 +158,23 @@ class _Step6ScreenState extends State<Step6Screen> {
         _catalog[i].embedding = embeddings[i].embedding;
       }
 
-      setState(() {
-        _statusMessage = 'Catalog indexed (${_catalog.length} vectors ready).';
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Catalog indexed (${_catalog.length} vectors ready).';
+        });
+      }
     } catch (e) {
-      setState(() {
-        _statusMessage = 'Error indexing catalog: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Error indexing catalog: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -176,13 +194,17 @@ class _Step6ScreenState extends State<Step6Screen> {
   }
 
   // Find nearest theme using vector embedding search
-  Future<void> _searchTheme() async {
-    final query = _controller.text.trim();
+  Future<void> _searchTheme([String? customQuery]) async {
+    final query = customQuery ?? _controller.text.trim();
     if (query.isEmpty) return;
+
+    if (customQuery != null) {
+      _controller.text = customQuery;
+    }
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Embedding search query: "$query"...';
+      _statusMessage = 'Embedding query: "$query"...';
       _similarityResults = [];
     });
 
@@ -215,134 +237,488 @@ class _Step6ScreenState extends State<Step6Screen> {
       final matchPercentage =
           ((scores.first['similarity'] as double) * 100).toStringAsFixed(1);
 
-      setState(() {
-        _similarityResults = scores;
-        _statusMessage = 'Matched "${topMatch.title}" ($matchPercentage% match)';
-      });
+      if (mounted) {
+        setState(() {
+          _similarityResults = scores;
+          _statusMessage =
+              'Matched "${topMatch.title}" ($matchPercentage% similarity)';
+        });
+      }
     } catch (e) {
-      setState(() {
-        _statusMessage = 'Search failed: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Search failed: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Widget _buildSimilarityPanel({bool isDarkBackground = true}) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: isDarkBackground
+            ? Colors.black87
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'VECTOR SIMILARITY RANKING',
+                style: TextStyle(
+                  color: isDarkBackground
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  fontSize: 13,
+                ),
+              ),
+              if (_similarityResults.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Cosine Sim',
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.greenAccent,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            ),
+          if (_similarityResults.isEmpty && !_isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Text(
+                'Run a semantic query or tap a quick prompt to rank catalog themes by vector distance.',
+                style: TextStyle(
+                  color: isDarkBackground
+                      ? Colors.white60
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ..._similarityResults.map((result) {
+            final item = result['item'] as ThemeItem;
+            final similarity = result['similarity'] as double;
+            final percentage = (similarity * 100).toStringAsFixed(1);
+            final isTop = _similarityResults.first == result;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            item.title,
+                            style: TextStyle(
+                              color: isDarkBackground
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface,
+                              fontWeight:
+                                  isTop ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '$percentage%',
+                        style: TextStyle(
+                          color: isTop
+                              ? Colors.greenAccent
+                              : (isDarkBackground
+                                  ? Colors.white70
+                                  : Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: similarity.clamp(0.0, 1.0),
+                      minHeight: 8,
+                      backgroundColor:
+                          isDarkBackground ? Colors.white12 : Colors.black12,
+                      valueColor: AlwaysStoppedAnimation(
+                        isTop ? Colors.greenAccent : Colors.tealAccent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBanner() {
+    final isError = _statusMessage.toLowerCase().contains('error') ||
+        _statusMessage.toLowerCase().contains('fail');
+    final isSuccess = _similarityResults.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isError
+            ? Colors.red.withValues(alpha: 0.12)
+            : (isSuccess
+                ? Colors.green.withValues(alpha: 0.12)
+                : Theme.of(context).colorScheme.surfaceContainerHighest),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isError
+              ? Colors.red.shade300
+              : (isSuccess ? Colors.green.shade400 : Colors.transparent),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isError
+                ? Icons.error_outline
+                : (isSuccess ? Icons.check_circle_outline : Icons.info_outline),
+            size: 20,
+            color: isError
+                ? Colors.red
+                : (isSuccess
+                    ? Colors.green
+                    : Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _statusMessage,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSuccess ? FontWeight.bold : FontWeight.w500,
+                color: isError ? Colors.red.shade700 : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCatalogSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Pre-indexed Theme Catalog',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${_catalog.where((c) => c.embedding != null).length}/${_catalog.length} vectors ready',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _catalog.length,
+          itemBuilder: (context, index) {
+            final item = _catalog[index];
+            final isCurrent = widget.currentColor == item.color;
+
+            return Card(
+              elevation: isCurrent ? 3 : 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: isCurrent
+                    ? BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      )
+                    : BorderSide.none,
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: item.color,
+                  child: isCurrent
+                      ? const Icon(Icons.palette, color: Colors.white, size: 18)
+                      : null,
+                ),
+                title: Text(
+                  item.title,
+                  style: TextStyle(
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: Text(
+                  item.description,
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: item.embedding != null
+                    ? const Icon(Icons.check_circle,
+                        color: Colors.green, size: 20)
+                    : const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                onTap: () {
+                  widget.onColorSelected(item.color);
+                  _controller.text = item.description;
+                  setState(() {});
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('8. Embeddings & Semantic Search')),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Padding(
+      appBar: AppBar(
+        title: const Text('6. Embeddings'),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 650;
+
+          final infoCard = Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Icon(Icons.hub, color: Colors.deepPurple),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Semantic Search & Vector Embeddings',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Uses text-embedding-004 to convert themes to vectors. Calculates cosine similarity with 0 hallucinations.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          final quickPrompts = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Quick Prompts:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.cloudy_snowing, size: 16),
+                    label: const Text('Rainy & Cozy'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _searchTheme(
+                            'Cozy rainy afternoon with warm tea'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.nightlife, size: 16),
+                    label: const Text('Cyberpunk Party'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _searchTheme(
+                            'Futuristic electronic cyberpunk neon vibes'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.water_drop, size: 16),
+                    label: const Text('Ocean Depths'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _searchTheme(
+                            'Deep sea marine exploration and blue waves'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.park, size: 16),
+                    label: const Text('Zen Garden'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _searchTheme(
+                            'Peaceful bamboo garden with green moss and stone'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.dark_mode, size: 16),
+                    label: const Text('Minimal Charcoal'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _searchTheme(
+                            'Clean dark monochrome workspace for maximum focus'),
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          final searchInput = TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: 'e.g. "I want something rainy and cozy"',
+              border: const OutlineInputBorder(),
+              suffixIcon: _controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _searchTheme(),
+          );
+
+          final searchButton = ElevatedButton.icon(
+            icon: const Icon(Icons.search),
+            onPressed: _isLoading ? null : () => _searchTheme(),
+            label: Text(_isLoading
+                ? 'Searching vector space...'
+                : 'Find Theme with Semantic Embedding'),
+          );
+
+          if (isMobile) {
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. "I want something rainy and cozy" or "techno club neon vibes"',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _searchTheme(),
-                  ),
+                  infoCard,
+                  const SizedBox(height: 12),
+                  quickPrompts,
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _searchTheme,
-                    child: const Text('Find Theme with Semantic Embedding'),
-                  ),
+                  searchInput,
+                  const SizedBox(height: 12),
+                  searchButton,
                   const SizedBox(height: 16),
-                  Text(
-                    _statusMessage,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Pre-indexed Theme Catalog:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _catalog.length,
-                      itemBuilder: (context, index) {
-                        final item = _catalog[index];
-                        return Card(
-                          child: ListTile(
-                            leading: CircleAvatar(backgroundColor: item.color),
-                            title: Text(item.title),
-                            subtitle: Text(item.description),
-                            trailing: item.embedding != null
-                                ? const Icon(Icons.check_circle, color: Colors.green)
-                                : const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  _buildStatusBanner(),
+                  const SizedBox(height: 16),
+                  _buildSimilarityPanel(isDarkBackground: true),
+                  const SizedBox(height: 20),
+                  _buildCatalogSection(),
                 ],
               ),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.black87,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'VECTOR SIMILARITY SCORES',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 6,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      infoCard,
+                      const SizedBox(height: 12),
+                      quickPrompts,
+                      const SizedBox(height: 16),
+                      searchInput,
+                      const SizedBox(height: 12),
+                      searchButton,
+                      const SizedBox(height: 16),
+                      _buildStatusBanner(),
+                      const SizedBox(height: 20),
+                      _buildCatalogSection(),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  if (_isLoading)
-                    const CircularProgressIndicator(color: Colors.white),
-                  const SizedBox(height: 16),
-                  ..._similarityResults.map((result) {
-                    final item = result['item'] as ThemeItem;
-                    final similarity = result['similarity'] as double;
-                    final percentage = (similarity * 100).toStringAsFixed(1);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${item.title}: $percentage%',
-                            style: const TextStyle(
-                              color: Colors.greenAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: similarity.clamp(0.0, 1.0),
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation(Colors.greenAccent),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+              Expanded(
+                flex: 5,
+                child: Container(
+                  color: Colors.black87,
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildSimilarityPanel(isDarkBackground: true),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
