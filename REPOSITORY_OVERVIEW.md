@@ -472,8 +472,10 @@ When the user asks to open settings or home, call navigateTo.''',
   final similarity = cosineSimilarity(queryEmbed.first.embedding, item.embedding);
   ```
 * **UI Layout & Visual Experience:**
-  * Left: Search input field and list of indexed theme items with live green check indicators.
-  * Right: Real-time progress bars showing similarity percentages (e.g., `Autumn Forest & Rain: 88.4%`, `Cyberpunk Neon: 42.1%`).
+  * **Mobile-First Responsive Layout:** Stacked scrollable column on mobile phones (<650px) with zero overflow; side-by-side view on desktop/tablet.
+  * **Quick Prompts Action Chips:** Instant 1-tap testing (`Rainy & Cozy`, `Cyberpunk Party`, `Ocean Depths`, `Zen Garden`, `Minimal Charcoal`).
+  * **Vector Similarity Ranking Panel:** Real-time visual progress bars with rounded indicators showing ranked similarity percentages (e.g. `Autumn Forest & Rain: 88.4%`, `Cyberpunk Neon: 42.1%`).
+  * **Interactive Theme Catalog:** Tapping any catalog card instantly applies the theme and populates its semantic description.
   * Automatically applies the highest-scoring theme without LLM generation latency or risk of made-up hex codes.
 * **Speaker Script:**
   > *"Not every problem requires generating prose. Sometimes what you need is semantic search. With `ai.embed`, we generate mathematical vector embeddings and compute cosine similarity in pure Dart without hallucination risk."*
