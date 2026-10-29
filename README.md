@@ -426,19 +426,19 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 
 ### Step 6: Vector Embeddings & Semantic Search
 * **File:** `lib/steps/step6_embeddings.dart` (Runner: `lib/main_step6.dart` or branch `step/6-embeddings`)
-* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('text-embedding-004')` to achieve 0-hallucination semantic matching using cosine similarity in pure Dart.
+* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('gemini-embedding-001')` to achieve 0-hallucination semantic matching using cosine similarity in pure Dart.
 * **Code Implementation:**
   ```dart
   // 1. Pre-index theme catalog into 768-dimension vectors
   final embeddings = await ai.embed(
     documents: _catalog.map((item) => DocumentData(content: [TextPart(text: '${item.title}: ${item.description}')])).toList(),
-    embedder: googleAI.textEmbedding('text-embedding-004'),
+    embedder: googleAI.textEmbedding('gemini-embedding-001'),
   );
 
   // 2. Embed user query (e.g. "somewhere cold and rainy")
   final queryEmbed = await ai.embed(
     documents: [DocumentData(content: [TextPart(text: userQuery)])],
-    embedder: googleAI.textEmbedding('text-embedding-004'),
+    embedder: googleAI.textEmbedding('gemini-embedding-001'),
   );
 
   // 3. Compute cosine similarity in Dart
