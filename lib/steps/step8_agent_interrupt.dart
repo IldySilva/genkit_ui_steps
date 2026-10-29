@@ -101,7 +101,7 @@ class _Step8ScreenState extends State<Step8Screen> {
               const String.fromEnvironment('GEMINI_API_KEY'),
         ),
       ],
-      model: googleAI.gemini('gemini-3.1-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash-lite'),
     );
 
     final changeThemeTool = ai.defineTool(
