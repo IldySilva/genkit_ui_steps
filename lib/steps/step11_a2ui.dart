@@ -59,7 +59,9 @@ class _Step11ScreenState extends State<Step11Screen> {
         ),
         A2uiPlugin(),
       ],
-      model: googleAI.gemini('gemini-2.5-flash'),
+      model: googleAI.gemini(dotenv.env['GEMINI_MODEL'] ??
+          const String.fromEnvironment('GEMINI_MODEL',
+              defaultValue: 'gemini-2.5-flash-lite')),
     );
 
     // 2. Initialize GenUI SurfaceController with basic catalog matching plugin ID

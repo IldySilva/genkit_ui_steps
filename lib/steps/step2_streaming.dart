@@ -96,8 +96,11 @@ class _Step2ScreenState extends State<Step2Screen>
     });
 
     try {
+      final modelName = dotenv.env['GEMINI_MODEL'] ??
+          const String.fromEnvironment('GEMINI_MODEL',
+              defaultValue: 'gemini-2.5-flash-lite');
       final stream = ai.generateStream(
-        model: googleAI.gemini('gemini-2.5-flash'),
+        model: googleAI.gemini(modelName),
         prompt: prompt,
       );
 

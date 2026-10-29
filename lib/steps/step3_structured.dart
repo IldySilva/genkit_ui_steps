@@ -94,8 +94,11 @@ class _Step3ScreenState extends State<Step3Screen> {
     });
 
     try {
+      final modelName = dotenv.env['GEMINI_MODEL'] ??
+          const String.fromEnvironment('GEMINI_MODEL',
+              defaultValue: 'gemini-2.5-flash-lite');
       final response = await ai.generate(
-        model: googleAI.gemini('gemini-2.5-flash'),
+        model: googleAI.gemini(modelName),
         prompt: '''
 The user wants to customize the application.
 
