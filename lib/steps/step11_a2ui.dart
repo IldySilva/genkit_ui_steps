@@ -73,7 +73,7 @@ class _Step11ScreenState extends State<Step11Screen> {
         setState(() {
           if (!_surfaceIds.contains(update.surfaceId)) {
             _surfaceIds.add(update.surfaceId);
-            _activityLogs.add('✨ [A2UI] Rendered surface: ${update.surfaceId}');
+            _activityLogs.add('[A2UI] Rendered surface: ${update.surfaceId}');
           }
         });
       }
@@ -90,7 +90,7 @@ class _Step11ScreenState extends State<Step11Screen> {
       _proseOutput = '';
       _surfaceIds.clear();
       _activityLogs.clear();
-      _activityLogs.add('🤔 Prompting model with A2UI Generative UI middleware...');
+      _activityLogs.add('[A2UI] Prompting model with A2UI Generative UI middleware...');
     });
 
     try {
@@ -116,11 +116,11 @@ class _Step11ScreenState extends State<Step11Screen> {
       }
 
       setState(() {
-        _activityLogs.add('✓ Generative UI streaming complete.');
+        _activityLogs.add('[Done] Generative UI streaming complete.');
       });
     } catch (e) {
       setState(() {
-        _activityLogs.add('❌ Error: $e');
+        _activityLogs.add('[Error] $e');
       });
     } finally {
       setState(() {

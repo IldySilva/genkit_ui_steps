@@ -111,7 +111,7 @@ class _Step8ScreenState extends State<Step8Screen> {
       fn: (input, _) async {
         widget.onThemeChanged(input.color);
         setState(() {
-          _activityLog.add('🔧 changeTheme(${input.color})');
+          _activityLog.add('[Tool] changeTheme(${input.color})');
         });
         return ToolResult.response('Theme changed to ${input.color}');
       },
@@ -152,7 +152,7 @@ class _Step8ScreenState extends State<Step8Screen> {
 
     setState(() {
       _isLoading = true;
-      _activityLog = ['🤔 Agent evaluating intention...'];
+      _activityLog = ['[Agent] Evaluating intention...'];
     });
 
     try {
@@ -162,7 +162,7 @@ class _Step8ScreenState extends State<Step8Screen> {
       if (res.interrupts.isNotEmpty) {
         final interrupt = res.interrupts.first;
         setState(() {
-          _activityLog.add('⏸️ INTERRUPT: ${interrupt.name} requires human approval');
+          _activityLog.add('[Interrupt] ${interrupt.name} requires human approval');
         });
 
         // Prompt the user in Flutter with a Dialog
@@ -171,7 +171,7 @@ class _Step8ScreenState extends State<Step8Screen> {
             context: context,
             barrierDismissible: false,
             builder: (ctx) => AlertDialog(
-              title: const Text('⚠️ Security Confirmation'),
+              title: const Text('Security Confirmation'),
               content: Text(
                 'The agent is requesting permission to execute: "${interrupt.name}".\n\n'
                 'Payload: ${interrupt.input}\n\n'
@@ -192,7 +192,7 @@ class _Step8ScreenState extends State<Step8Screen> {
 
           if (approved == true) {
             setState(() {
-              _activityLog.add('👤 User approved. Resuming agent turn...');
+              _activityLog.add('[User] Approved. Resuming agent turn...');
             });
             widget.onResetTheme();
 
@@ -202,11 +202,11 @@ class _Step8ScreenState extends State<Step8Screen> {
               ],
             );
             setState(() {
-              _activityLog.add('✓ Action executed: ${resumeRes.text}');
+              _activityLog.add('[Done] Action executed: ${resumeRes.text}');
             });
           } else {
             setState(() {
-              _activityLog.add('❌ User denied action.');
+              _activityLog.add('[Denied] User denied action.');
             });
             final resumeRes = await _currentChat.resume(
               respond: [
@@ -220,7 +220,7 @@ class _Step8ScreenState extends State<Step8Screen> {
         }
       } else {
         setState(() {
-          _activityLog.add('✓ Agent completed turn: ${res.text}');
+          _activityLog.add('[Done] Agent completed turn: ${res.text}');
         });
       }
     } catch (e) {

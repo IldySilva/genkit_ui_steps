@@ -115,7 +115,7 @@ class _Step2ScreenState extends State<Step2Screen>
       }
     } catch (e) {
       setState(() {
-        _answer += '\n\n❌ Error: $e';
+        _answer += '\n\nError: $e';
       });
     } finally {
       if (mounted) {

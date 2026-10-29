@@ -26,12 +26,12 @@ class LatencyLoggingMiddleware extends GenerateMiddleware {
     ) next,
   ) async {
     final stopwatch = Stopwatch()..start();
-    onLog('⏱️ [Middleware] Calling model with ${request.messages.length} message(s)...');
+    onLog('[Middleware] Calling model with ${request.messages.length} message(s)...');
     
     final response = await next(request, ctx);
     stopwatch.stop();
 
-    onLog('⏱️ [Middleware] Model responded in ${stopwatch.elapsedMilliseconds}ms');
+    onLog('[Middleware] Model responded in ${stopwatch.elapsedMilliseconds}ms');
     return response;
   }
 }
@@ -112,7 +112,7 @@ class _Step7ScreenState extends State<Step7Screen> {
       _generatedText = '';
       _isStreaming = true;
       _logs.clear();
-      _logs.add('🚀 Starting stream generation with custom middleware & retry...');
+      _logs.add('[Stream] Starting stream generation with custom middleware & retry...');
     });
 
     try {
@@ -133,13 +133,13 @@ class _Step7ScreenState extends State<Step7Screen> {
         onDone: () {
           setState(() {
             _isStreaming = false;
-            _logs.add('✓ Stream completed successfully.');
+            _logs.add('[Done] Stream completed successfully.');
           });
         },
         onError: (err) {
           setState(() {
             _isStreaming = false;
-            _logs.add('❌ Stream error: $err');
+            _logs.add('[Error] Stream error: $err');
           });
         },
         cancelOnError: true,
@@ -147,7 +147,7 @@ class _Step7ScreenState extends State<Step7Screen> {
     } catch (e) {
       setState(() {
         _isStreaming = false;
-        _logs.add('❌ Exception: $e');
+        _logs.add('[Error] Exception: $e');
       });
     }
   }
@@ -159,7 +159,7 @@ class _Step7ScreenState extends State<Step7Screen> {
       _subscription = null;
       setState(() {
         _isStreaming = false;
-        _logs.add('🛑 [Cancellation] User canceled stream generation mid-way.');
+        _logs.add('[Cancelled] User canceled stream generation mid-way.');
       });
     }
   }

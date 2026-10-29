@@ -114,7 +114,7 @@ class _Step4ScreenState extends State<Step4Screen> {
       fn: (input, _) async {
         widget.onThemeChanged(input.color);
         setState(() {
-          _activityLog.add('🔧 changeTheme\ncolor: ${input.color}');
+          _activityLog.add('[Tool] changeTheme: ${input.color}');
         });
         return ToolResult.response('Theme changed to ${input.color}');
       },
@@ -129,14 +129,14 @@ class _Step4ScreenState extends State<Step4Screen> {
           case 'settings':
             navigatorKey.currentState?.pushNamed('/settings');
             setState(() {
-              _activityLog.add('🔧 navigateTo(settings)');
+              _activityLog.add('[Tool] navigateTo(settings)');
             });
             return ToolResult.response('Navigated to settings');
 
           case 'home':
             navigatorKey.currentState?.pushNamed('/home');
             setState(() {
-              _activityLog.add('🔧 navigateTo(home)');
+              _activityLog.add('[Tool] navigateTo(home)');
             });
             return ToolResult.response('Navigated to home');
 
@@ -150,7 +150,7 @@ class _Step4ScreenState extends State<Step4Screen> {
   Future<void> _askAiTools() async {
     setState(() {
       _isLoading = true;
-      _activityLog = ['🤔 Understanding request...'];
+      _activityLog = ['[AI] Understanding request...'];
     });
 
     final prompt = _controller.text.isEmpty
@@ -169,16 +169,16 @@ class _Step4ScreenState extends State<Step4Screen> {
 
       if (response.finishReason == 'failed') {
         setState(() {
-          _activityLog.add('⚠️ ${response.finishMessage ?? "Model execution failed"}');
+          _activityLog.add('[Warning] ${response.finishMessage ?? "Model execution failed"}');
         });
       } else {
         setState(() {
-          _activityLog.add('✓ Request completed');
+          _activityLog.add('[Done] Request completed');
         });
       }
     } catch (e) {
       setState(() {
-        _activityLog.add('❌ Error: $e');
+        _activityLog.add('[Error] $e');
       });
     } finally {
       setState(() {
