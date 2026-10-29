@@ -215,7 +215,7 @@ class _Step5ScreenState extends State<Step5Screen> {
       fn: (input, _) async {
         widget.onThemeChanged(input.color);
         setState(() {
-          _activityLog.add('🔧 changeTheme\ncolor: ${input.color}');
+          _activityLog.add('[Tool] changeTheme: ${input.color}');
         });
         return ToolResult.response('Theme changed to ${input.color}');
       },
@@ -230,14 +230,14 @@ class _Step5ScreenState extends State<Step5Screen> {
           case 'settings':
             navigatorKey.currentState?.pushNamed('/settings');
             setState(() {
-              _activityLog.add('🔧 navigateTo(settings)');
+              _activityLog.add('[Tool] navigateTo(settings)');
             });
             return ToolResult.response('Navigated to settings');
 
           case 'home':
             navigatorKey.currentState?.pushNamed('/home');
             setState(() {
-              _activityLog.add('🔧 navigateTo(home)');
+              _activityLog.add('[Tool] navigateTo(home)');
             });
             return ToolResult.response('Navigated to home');
 
@@ -254,7 +254,7 @@ class _Step5ScreenState extends State<Step5Screen> {
     _ensureInitialized().then((_) {
       if (mounted && _modelPath != null) {
         setState(() {
-          _activityLog.add('✅ Found local model: ${_modelPath!.split('/').last}');
+          _activityLog.add('[Model] Found local model: ${_modelPath!.split('/').last}');
         });
       }
     });
@@ -279,9 +279,9 @@ class _Step5ScreenState extends State<Step5Screen> {
       setState(() {
         _isLoading = false;
         _activityLog = [
-          '❌ Local model file not found.',
-          'ℹ️ Checked iOS/macOS bundle and assets/ folder.',
-          'ℹ️ Please ensure "assets/Qwen3.5-0.8B-IQ4_NL.gguf" is placed in the project assets.',
+          '[Error] Local model file not found.',
+          '[Info] Checked iOS/macOS bundle and assets/ folder.',
+          '[Info] Please ensure "assets/Qwen3.5-0.8B-IQ4_NL.gguf" is placed in the project assets.',
         ];
       });
       return;
@@ -289,7 +289,7 @@ class _Step5ScreenState extends State<Step5Screen> {
 
     setState(() {
       _isLoading = true;
-      _activityLog.add('🤔 Loading local model & running on-device inference...');
+      _activityLog.add('[AI] Loading local model & running on-device inference...');
     });
 
     final prompt = _controller.text.isEmpty
@@ -315,17 +315,17 @@ When the user asks to open settings or home, call navigateTo.''',
 
       if (response.text.isNotEmpty) {
         setState(() {
-          _activityLog.add('💬 ${response.text}');
-          _activityLog.add('✓ On-device execution completed');
+          _activityLog.add('[Response] ${response.text}');
+          _activityLog.add('[Done] On-device execution completed');
         });
       } else {
         setState(() {
-          _activityLog.add('✓ On-device execution completed');
+          _activityLog.add('[Done] On-device execution completed');
         });
       }
     } catch (e) {
       setState(() {
-        _activityLog.add('❌ Error: $e');
+        _activityLog.add('[Error] $e');
       });
     } finally {
       setState(() {
