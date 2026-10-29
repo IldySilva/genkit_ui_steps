@@ -51,7 +51,7 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
 
     final response = await ai.generate(
-      model: googleAI.gemini('gemini-3.1-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash-lite'),
       prompt: _controller.text.isEmpty
           ? 'Explain Flutter in one sentence.'
           : _controller.text,
