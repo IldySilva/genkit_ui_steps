@@ -151,7 +151,7 @@ class _Step6ScreenState extends State<Step6Screen> {
 
       final embeddings = await ai.embed(
         documents: documents,
-        embedder: googleAI.textEmbedding('text-embedding-004'),
+        embedder: googleAI.textEmbedding('gemini-embedding-001'),
       );
 
       for (var i = 0; i < _catalog.length; i++) {
@@ -213,7 +213,7 @@ class _Step6ScreenState extends State<Step6Screen> {
         documents: [
           DocumentData(content: [TextPart(text: query)])
         ],
-        embedder: googleAI.textEmbedding('text-embedding-004'),
+        embedder: googleAI.textEmbedding('gemini-embedding-001'),
       );
 
       final queryVector = queryEmbeddingResult.first.embedding;
@@ -564,7 +564,7 @@ class _Step6ScreenState extends State<Step6Screen> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Uses text-embedding-004 to convert themes to vectors. Calculates cosine similarity with 0 hallucinations.',
+                          'Uses gemini-embedding-001 to convert themes to vectors. Calculates cosine similarity with 0 hallucinations.',
                           style: TextStyle(fontSize: 12),
                         ),
                       ],
