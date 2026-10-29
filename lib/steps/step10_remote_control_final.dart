@@ -224,8 +224,11 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
     });
 
     try {
+      final modelName = dotenv.env['GEMINI_MODEL'] ??
+          const String.fromEnvironment('GEMINI_MODEL',
+              defaultValue: 'gemini-2.5-flash-lite');
       final response = await ai.generate(
-        model: googleAI.gemini('gemini-2.5-flash'),
+        model: googleAI.gemini(modelName),
         prompt:
             '''
 You are controlling a Flutter application.
