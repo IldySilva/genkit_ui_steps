@@ -78,12 +78,17 @@ class _Step2ScreenState extends State<Step2Screen>
     }
   }
 
-  Future<void> _askAiStream() async {
+  Future<void> _askAiStream([String? customPrompt]) async {
     if (_isGenerating) return;
 
-    final prompt = _controller.text.isEmpty
-        ? 'Explain why Flutter is good for building AI applications.'
-        : _controller.text;
+    final prompt = customPrompt ??
+        (_controller.text.trim().isEmpty
+            ? 'Explain why Flutter is good for building AI applications.'
+            : _controller.text.trim());
+
+    if (customPrompt != null) {
+      _controller.text = customPrompt;
+    }
 
     setState(() {
       _answer = '';
@@ -92,7 +97,7 @@ class _Step2ScreenState extends State<Step2Screen>
 
     try {
       final stream = ai.generateStream(
-        model: googleAI.gemini('gemini-2.5-flash-lite'),
+        model: googleAI.gemini('gemini-2.5-flash'),
         prompt: prompt,
       );
 
@@ -131,78 +136,174 @@ class _Step2ScreenState extends State<Step2Screen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('2. Streaming')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                hintText:
-                    'Explain why Flutter is good for building AI applications.',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _askAiStream(),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _isGenerating ? null : _askAiStream,
-              child: const Text('Ask AI (Stream)'),
-            ),
-            const SizedBox(height: 32),
-            if (_answer.isNotEmpty || _isGenerating) ...[
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'AI Response:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.5,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        children: [
-                          TextSpan(text: _answer),
-                          if (_isGenerating)
-                            WidgetSpan(
-                              alignment: PlaceholderAlignment.middle,
-                              child: FadeTransition(
-                                opacity: _cursorController,
-                                child: Container(
-                                  width: 8,
-                                  height: 18,
-                                  margin: const EdgeInsets.only(left: 4),
-                                  color: Theme.of(context).colorScheme.primary,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.stream, color: Colors.deepPurple),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Real-Time Streaming Generation',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Streams chunks asynchronously using ai.generateStream with a pulsing terminal cursor.',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Quick Prompts:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(Icons.flutter_dash, size: 16),
+                      label: const Text('Why Flutter for AI'),
+                      onPressed: _isGenerating
+                          ? null
+                          : () => _askAiStream(
+                              'Explain why Flutter is good for building AI applications.'),
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.speed, size: 16),
+                      label: const Text('Reactive Architecture'),
+                      onPressed: _isGenerating
+                          ? null
+                          : () => _askAiStream(
+                              'How does reactive UI architecture work with streaming LLMs?'),
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.bolt, size: 16),
+                      label: const Text('AOT Performance'),
+                      onPressed: _isGenerating
+                          ? null
+                          : () => _askAiStream(
+                              'Summarize the performance benefits of Dart Native Ahead-Of-Time compilation.'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    hintText:
+                        'e.g. Explain why Flutter is good for building AI applications.',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _controller.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _askAiStream(),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.play_arrow),
+                  onPressed: _isGenerating ? null : () => _askAiStream(),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  label: Text(_isGenerating
+                      ? 'Streaming tokens...'
+                      : 'Ask AI (Stream)'),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _isGenerating
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outlineVariant,
+                        width: _isGenerating ? 1.5 : 1,
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.5,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: _answer.isEmpty
+                                  ? (_isGenerating
+                                      ? 'Waiting for first token...'
+                                      : 'Tap a prompt above or click "Ask AI (Stream)".')
+                                  : _answer,
+                              style: TextStyle(
+                                color: _answer.isEmpty
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                    : null,
+                              ),
                             ),
-                        ],
+                            if (_isGenerating)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: FadeTransition(
+                                  opacity: _cursorController,
+                                  child: Container(
+                                    width: 8,
+                                    height: 18,
+                                    margin: const EdgeInsets.only(left: 4),
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ],
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

@@ -19,6 +19,65 @@ abstract class $ResetSettingsInput {
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+Color _parseColor(String raw) {
+  final s = raw.trim().toLowerCase();
+  if (s.contains('dark') ||
+      s.contains('escuro') ||
+      s.contains('black') ||
+      s.contains('preto') ||
+      s.contains('gloomy')) {
+    return const Color(0xFF1E1E1E);
+  }
+  if (s.contains('light') ||
+      s.contains('claro') ||
+      s.contains('white') ||
+      s.contains('branco')) {
+    return Colors.blueGrey.shade100;
+  }
+  if (s.contains('matrix') || s.contains('cyberpunk') || s.contains('hacker')) {
+    return const Color(0xFF00FF41);
+  }
+  if (s.contains('blue') || s.contains('azul')) {
+    return Colors.blue;
+  }
+  if (s.contains('green') || s.contains('verde')) {
+    return Colors.green;
+  }
+  if (s.contains('red') || s.contains('vermelho')) {
+    return Colors.red;
+  }
+  if (s.contains('purple') || s.contains('roxo')) {
+    return Colors.deepPurple;
+  }
+  if (s.contains('orange') || s.contains('laranja')) {
+    return Colors.orange;
+  }
+  if (s.contains('yellow') || s.contains('amarelo')) {
+    return Colors.amber;
+  }
+  if (s.contains('pink') || s.contains('rosa')) {
+    return Colors.pink;
+  }
+  if (s.contains('teal')) {
+    return Colors.teal;
+  }
+
+  try {
+    String hex = s.replaceAll('#', '').replaceAll('0x', '');
+    if (hex.length == 3) {
+      hex = hex.split('').map((c) => '$c$c').join();
+    }
+    if (hex.length == 6) {
+      hex = 'ff$hex';
+    }
+    if (hex.length == 8) {
+      return Color(int.parse(hex, radix: 16));
+    }
+  } catch (_) {}
+
+  return Colors.deepPurple;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -37,7 +96,7 @@ class Step8AppState extends State<Step8App> {
 
   void changeTheme(String color) {
     setState(() {
-      _themeColor = Color(int.parse(color.replaceFirst('#', '0xff')));
+      _themeColor = _parseColor(color);
     });
   }
 
@@ -50,6 +109,7 @@ class Step8AppState extends State<Step8App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Goes AI - Step 8 (Agents & Interrupts)',
       navigatorKey: navigatorKey,
       theme: ThemeData(
@@ -85,7 +145,7 @@ class Step8Screen extends StatefulWidget {
 class _Step8ScreenState extends State<Step8Screen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
-  List<String> _activityLog = [];
+  final List<String> _activityLog = [];
 
   late final Genkit ai;
   late final dynamic assistantAgent;
@@ -101,18 +161,21 @@ class _Step8ScreenState extends State<Step8Screen> {
               const String.fromEnvironment('GEMINI_API_KEY'),
         ),
       ],
-      model: googleAI.gemini('gemini-2.5-flash-lite'),
+      model: googleAI.gemini('gemini-2.5-flash'),
     );
 
     final changeThemeTool = ai.defineTool(
       name: 'changeTheme',
-      description: 'Changes visual theme color for normal styling requests.',
+      description:
+          'Changes visual theme color for normal styling requests. Accepts hex or color name.',
       inputSchema: ChangeThemeInput.$schema,
       fn: (input, _) async {
         widget.onThemeChanged(input.color);
-        setState(() {
-          _activityLog.add('[Tool] changeTheme(${input.color})');
-        });
+        if (mounted) {
+          setState(() {
+            _activityLog.add('[Tool] changeTheme(${input.color})');
+          });
+        }
         return ToolResult.response('Theme changed to ${input.color}');
       },
     );
@@ -124,7 +187,6 @@ class _Step8ScreenState extends State<Step8Screen> {
           'Requires human confirmation before proceeding.',
       inputSchema: ResetSettingsInput.$schema,
       fn: (input, _) async {
-        // Return an interrupt asking for human approval
         return ToolResult.interrupt({
           'action': 'resetSettings',
           'reason': input.reason,
@@ -146,13 +208,23 @@ class _Step8ScreenState extends State<Step8Screen> {
     _currentChat = assistantAgent.chat();
   }
 
-  Future<void> _askAgent() async {
-    final text = _controller.text.trim();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _askAgent([String? customPrompt]) async {
+    final text = customPrompt ?? _controller.text.trim();
     if (text.isEmpty) return;
+
+    if (customPrompt != null) {
+      _controller.text = customPrompt;
+    }
 
     setState(() {
       _isLoading = true;
-      _activityLog = ['[Agent] Evaluating intention...'];
+      _activityLog.add('[Agent] Evaluating intention: "$text"');
     });
 
     try {
@@ -162,29 +234,32 @@ class _Step8ScreenState extends State<Step8Screen> {
       if (res.interrupts.isNotEmpty) {
         final interrupt = res.interrupts.first;
         setState(() {
-          _activityLog.add('[Interrupt] ${interrupt.name} requires human approval');
+          _activityLog
+              .add('[Interrupt] ${interrupt.name} requires human approval');
         });
 
-        // Prompt the user in Flutter with a Dialog
         if (mounted) {
           final approved = await showDialog<bool>(
             context: context,
             barrierDismissible: false,
             builder: (ctx) => AlertDialog(
-              title: const Text('Security Confirmation'),
+              icon: const Icon(Icons.shield_outlined,
+                  size: 40, color: Colors.amber),
+              title: const Text('Security Authorization'),
               content: Text(
-                'The agent is requesting permission to execute: "${interrupt.name}".\n\n'
-                'Payload: ${interrupt.input}\n\n'
+                'The AI Agent is requesting permission to execute a privileged action: "${interrupt.name}".\n\n'
+                'Reason: ${interrupt.input['reason'] ?? interrupt.input}\n\n'
                 'Do you authorize this action?',
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Deny', style: TextStyle(color: Colors.red)),
+                  child:
+                      const Text('Deny', style: TextStyle(color: Colors.red)),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Approve'),
+                  child: const Text('Approve Action'),
                 ),
               ],
             ),
@@ -198,7 +273,10 @@ class _Step8ScreenState extends State<Step8Screen> {
 
             final resumeRes = await _currentChat.resume(
               respond: [
-                interrupt.respond({'approved': true, 'feedback': 'Action approved by user.'}),
+                interrupt.respond({
+                  'approved': true,
+                  'feedback': 'Action approved by user.'
+                }),
               ],
             );
             setState(() {
@@ -210,11 +288,14 @@ class _Step8ScreenState extends State<Step8Screen> {
             });
             final resumeRes = await _currentChat.resume(
               respond: [
-                interrupt.respond({'approved': false, 'feedback': 'User rejected action.'}),
+                interrupt.respond({
+                  'approved': false,
+                  'feedback': 'User rejected action.'
+                }),
               ],
             );
             setState(() {
-              _activityLog.add('Agent acknowledgment: ${resumeRes.text}');
+              _activityLog.add('[Agent] Acknowledgment: ${resumeRes.text}');
             });
           }
         }
@@ -225,77 +306,288 @@ class _Step8ScreenState extends State<Step8Screen> {
       }
     } catch (e) {
       setState(() {
-        _activityLog.add('Error: $e');
+        _activityLog.add('[Error] $e');
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Color _getLogColor(String log) {
+    if (log.contains('[Interrupt]')) return Colors.amberAccent;
+    if (log.contains('[User]')) return Colors.cyanAccent;
+    if (log.contains('[Denied]')) return Colors.redAccent;
+    if (log.contains('[Done]')) return Colors.greenAccent;
+    if (log.contains('[Tool]')) return Colors.tealAccent;
+    if (log.contains('[Error]')) return Colors.redAccent;
+    return Colors.white70;
+  }
+
+  Widget _buildActivityPanel({bool isExpanded = false}) {
+    final content = Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'AGENT ACTIVITY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  fontSize: 12,
+                ),
+              ),
+              if (_activityLog.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep,
+                      color: Colors.white70, size: 18),
+                  tooltip: 'Clear activity log',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => setState(() => _activityLog.clear()),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_isLoading) ...[
+            const ClipRRect(
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+              child: LinearProgressIndicator(
+                color: Colors.greenAccent,
+                backgroundColor: Colors.white12,
+                minHeight: 3,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (isExpanded)
+            Expanded(
+              child: ListView.builder(
+                itemCount: _activityLog.length,
+                itemBuilder: (context, index) {
+                  final log = _activityLog[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: Text(
+                      log,
+                      style: TextStyle(
+                        color: _getLogColor(log),
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _activityLog.isEmpty
+                  ? [
+                      const Text(
+                        'No agent events yet. Try a quick prompt or type a command.',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ]
+                  : _activityLog.map((log) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6.0),
+                        child: Text(
+                          log,
+                          style: TextStyle(
+                            color: _getLogColor(log),
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+            ),
+        ],
+      ),
+    );
+
+    return isExpanded ? Expanded(child: content) : content;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('6. Experimental Agents & Interrupts')),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+      appBar: AppBar(
+        title: const Text('8. Agent Interrupts'),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 650;
+
+          final infoCard = Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Row(
                 children: [
-                  TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Try: "Reset all application data" or "Make it dark blue"',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _askAgent(),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _askAgent,
-                    child: const Text('Send to Agent'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.black87,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'AGENT ACTIVITY',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_isLoading)
-                    const CircularProgressIndicator(color: Colors.white),
-                  const SizedBox(height: 16),
-                  ..._activityLog.map(
-                    (log) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        log,
-                        style: const TextStyle(color: Colors.greenAccent),
-                      ),
+                  Icon(Icons.security, color: Colors.deepPurple),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Human-in-the-Loop Interrupts',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Privileged tools (e.g. resetSettings) trigger an interrupt pause, allowing the user to Approve or Deny before continuing.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          );
+
+          final quickPrompts = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Quick Prompts:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.warning_amber,
+                        size: 16, color: Colors.amber),
+                    label: const Text('Reset All Settings'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _askAgent(
+                            'Reset all application settings and data to default.'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.palette, size: 16),
+                    label: const Text('Matrix Green'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _askAgent(
+                            'Change visual theme to matrix cyberpunk green.'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.dark_mode, size: 16),
+                    label: const Text('Dark Navy'),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _askAgent(
+                            'Change visual theme to dark navy blue.'),
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          final promptInput = TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText:
+                  'Try: "Reset all application data" or "Make it dark blue"',
+              border: const OutlineInputBorder(),
+              suffixIcon: _controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _isLoading ? null : _askAgent(),
+          );
+
+          final sendButton = ElevatedButton.icon(
+            icon: const Icon(Icons.send),
+            onPressed: _isLoading ? null : () => _askAgent(),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            label: Text(_isLoading ? 'Agent thinking...' : 'Send to Agent'),
+          );
+
+          if (isMobile) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  infoCard,
+                  const SizedBox(height: 12),
+                  quickPrompts,
+                  const SizedBox(height: 16),
+                  promptInput,
+                  const SizedBox(height: 12),
+                  sendButton,
+                  const SizedBox(height: 16),
+                  _buildActivityPanel(isExpanded: false),
+                ],
+              ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 6,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      infoCard,
+                      const SizedBox(height: 12),
+                      quickPrompts,
+                      const SizedBox(height: 16),
+                      promptInput,
+                      const SizedBox(height: 12),
+                      sendButton,
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 5,
+                child: Container(
+                  color: Colors.black87,
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildActivityPanel(isExpanded: true),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
