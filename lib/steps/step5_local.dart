@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
@@ -172,6 +173,9 @@ class _Step5ScreenState extends State<Step5Screen> {
           changeThemeTool.name,
           navigateTool.name,
         ],
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Local model execution timed out. Local GGUF not found or loaded.'),
       );
 
       setState(() {
