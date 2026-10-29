@@ -22,11 +22,11 @@ help:
 	@echo "  $(GREEN)make step3$(RESET)    -> Step 3: Structured Output (schemantic)"
 	@echo "  $(GREEN)make step4$(RESET)    -> Step 4: Function Calling [THE WOW MOMENT]"
 	@echo "  $(GREEN)make step5$(RESET)    -> Step 5: Local On-Device AI (llamadart)"
-	@echo "  $(GREEN)make step6$(RESET)    -> Step 6: Stateful Agents & Interrupts"
-	@echo "  $(GREEN)make step7$(RESET)    -> Step 7: Final Polished Remote Control"
-	@echo "  $(GREEN)make step8$(RESET)    -> Step 8: Vector Embeddings & Similarity"
-	@echo "  $(GREEN)make step9$(RESET)    -> Step 9: Middlewares, Retries & Cancel"
-	@echo "  $(GREEN)make step10$(RESET)   -> Step 10: Multi-Agent & Snapshot Rewind"
+	@echo "  $(GREEN)make step6$(RESET)    -> Step 6: Vector Embeddings & Similarity"
+	@echo "  $(GREEN)make step7$(RESET)    -> Step 7: Middlewares, Retries & Cancel"
+	@echo "  $(GREEN)make step8$(RESET)    -> Step 8: Stateful Agents & Human Approval"
+	@echo "  $(GREEN)make step9$(RESET)    -> Step 9: Multi-Agent & Snapshot Rewind"
+	@echo "  $(GREEN)make step10$(RESET)   -> Step 10: Master UI Remote Control (Production Demo)"
 	@echo "  $(GREEN)make step11$(RESET)   -> Step 11: A2UI Generative UI (Dynamic Surfaces)"
 	@echo "  $(GREEN)make main$(RESET)     -> Return to main branch"
 	@echo ""
@@ -57,24 +57,24 @@ step5:
 	@git checkout step/5-local
 
 step6:
-	@echo "$(CYAN)➡️  Switching to Step 6: Stateful Agents & Human Approval...$(RESET)"
-	@git checkout step/6-agents
+	@echo "$(CYAN)➡️  Switching to Step 6: Vector Embeddings & Similarity...$(RESET)"
+	@git checkout step/6-embeddings
 
 step7:
-	@echo "$(CYAN)➡️  Switching to Step 7: Final Polished Demo...$(RESET)"
-	@git checkout step/7-final
+	@echo "$(CYAN)➡️  Switching to Step 7: Middlewares, Retries & Cancel...$(RESET)"
+	@git checkout step/7-middlewares
 
 step8:
-	@echo "$(CYAN)➡️  Switching to Step 8: Vector Embeddings & Similarity...$(RESET)"
-	@git checkout step/8-embeddings
+	@echo "$(CYAN)➡️  Switching to Step 8: Stateful Agents & Human Approval...$(RESET)"
+	@git checkout step/8-agents
 
 step9:
-	@echo "$(CYAN)➡️  Switching to Step 9: Middlewares & Stream Cancel...$(RESET)"
-	@git checkout step/9-middlewares
+	@echo "$(CYAN)➡️  Switching to Step 9: Multi-Agent & Snapshot Rewind...$(RESET)"
+	@git checkout step/9-multi-agent
 
 step10:
-	@echo "$(CYAN)➡️  Switching to Step 10: Multi-Agent & Snapshots...$(RESET)"
-	@git checkout step/10-multi-agent
+	@echo "$(CYAN)➡️  Switching to Step 10: Master UI Remote Control (Production Demo)...$(RESET)"
+	@git checkout step/10-remote-control
 
 step11:
 	@echo "$(CYAN)➡️  Switching to Step 11: A2UI Generative UI...$(RESET)"
