@@ -54,3 +54,9 @@ PRESENTATION_SCRIPT.md
 GENKIT_DART_DEEP_DIVE.md
 AUDIENCE_QA_CHEAT_SHEET.md
 
+# Local Large Language Models (GGUF / LiteRT) - keep out of git due to file size limits
+*.gguf
+assets/*.gguf
+*.litertlm
+
+

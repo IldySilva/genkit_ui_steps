@@ -94,15 +94,21 @@ class _Step5ScreenState extends State<Step5Screen> {
 
   String _resolveModelPath() {
     const relativePath = 'assets/Qwen3.5-0.8B-IQ4_NL.gguf';
-    final file = File(relativePath);
-    if (file.existsSync()) {
-      return file.absolute.path;
+    final candidates = [
+      relativePath,
+      '${Directory.current.path}/$relativePath',
+      // macOS App Bundle locations
+      '${File(Platform.resolvedExecutable).parent.path}/../Frameworks/App.framework/Resources/flutter_assets/$relativePath',
+      '${File(Platform.resolvedExecutable).parent.path}/../Resources/flutter_assets/$relativePath',
+    ];
+
+    for (final candidate in candidates) {
+      final file = File(candidate);
+      if (file.existsSync()) {
+        return file.absolute.path;
+      }
     }
-    final fallback = File('${Directory.current.path}/$relativePath');
-    if (fallback.existsSync()) {
-      return fallback.path;
-    }
-    return file.absolute.path;
+    return File(relativePath).absolute.path;
   }
 
   @override
