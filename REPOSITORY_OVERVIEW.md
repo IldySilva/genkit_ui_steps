@@ -416,7 +416,9 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 * **Mobile & Bundle Resolution:**
   * Uses a multi-candidate filesystem resolver that directly locates the model in the iOS App Bundle (`Runner.app/Frameworks/App.framework/flutter_assets/assets/...`), macOS App Bundle (`genkit.app/...`), or development root.
   * Includes an automatic fallback for Android via `rootBundle` to extract into `Directory.systemTemp`.
-  * Responsive UI: Adapts automatically to mobile phones (`Column` layout with scrollable log) and desktop/tablets (`Row` layout).
+  * **Responsive Mobile UX:** Stacked scrollable column on mobile phones (<650px) and side-by-side on wide screens.
+  * **Quick Prompts Action Chips:** 1-tap test execution without virtual keyboard typing (`Dark & Settings`, `Matrix Green`, `Open Settings`, `Ocean Blue`).
+  * **Resilient Tool Execution:** Safe semantic & hex color parser (`_parseColor`), normalized route handling, and log clear button.
 * **Code:**
   ```dart
   final plugin = llamaDart(
