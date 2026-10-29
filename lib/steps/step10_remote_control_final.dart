@@ -19,6 +19,65 @@ abstract class $NavigateInput {
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+Color _parseColor(String raw) {
+  final s = raw.trim().toLowerCase();
+  if (s.contains('dark') ||
+      s.contains('escuro') ||
+      s.contains('black') ||
+      s.contains('preto') ||
+      s.contains('gloomy')) {
+    return const Color(0xFF1E1E1E);
+  }
+  if (s.contains('light') ||
+      s.contains('claro') ||
+      s.contains('white') ||
+      s.contains('branco')) {
+    return Colors.blueGrey.shade100;
+  }
+  if (s.contains('matrix') || s.contains('cyberpunk') || s.contains('hacker')) {
+    return const Color(0xFF00FF41);
+  }
+  if (s.contains('blue') || s.contains('azul')) {
+    return Colors.blue;
+  }
+  if (s.contains('green') || s.contains('verde')) {
+    return Colors.green;
+  }
+  if (s.contains('red') || s.contains('vermelho')) {
+    return Colors.red;
+  }
+  if (s.contains('purple') || s.contains('roxo')) {
+    return Colors.deepPurple;
+  }
+  if (s.contains('orange') || s.contains('laranja')) {
+    return Colors.orange;
+  }
+  if (s.contains('yellow') || s.contains('amarelo')) {
+    return Colors.amber;
+  }
+  if (s.contains('pink') || s.contains('rosa')) {
+    return Colors.pink;
+  }
+  if (s.contains('teal')) {
+    return Colors.teal;
+  }
+
+  try {
+    String hex = s.replaceAll('#', '').replaceAll('0x', '');
+    if (hex.length == 3) {
+      hex = hex.split('').map((c) => '$c$c').join();
+    }
+    if (hex.length == 6) {
+      hex = 'ff$hex';
+    }
+    if (hex.length == 8) {
+      return Color(int.parse(hex, radix: 16));
+    }
+  } catch (_) {}
+
+  return Colors.deepPurple;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -37,7 +96,7 @@ class FinalDemoAppState extends State<FinalDemoApp> {
 
   void changeTheme(String color) {
     setState(() {
-      _themeColor = Color(int.parse(color.replaceFirst('#', '0xff')));
+      _themeColor = _parseColor(color);
     });
   }
 
@@ -127,26 +186,30 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
 
     navigateTool = ai.defineTool(
       name: 'navigateTo',
-      description: 'Navigates to another screen in the Flutter application.',
+      description: 'Navigates to another screen in the Flutter application ("settings" or "home").',
       inputSchema: NavigateInput.$schema,
       fn: (input, _) async {
-        switch (input.screen) {
-          case 'settings':
-            navigatorKey.currentState?.pushNamed('/settings');
-            setState(() {
-              _activityLog.add('[Tool] navigateTo(settings)');
-            });
-            return ToolResult.response('Navigated to settings');
-
-          case 'home':
-            navigatorKey.currentState?.pushNamed('/home');
-            setState(() {
-              _activityLog.add('[Tool] navigateTo(home)');
-            });
-            return ToolResult.response('Navigated to home');
-
-          default:
-            return ToolResult.response('Unknown screen: ${input.screen}');
+        final target = input.screen.trim().toLowerCase().replaceAll('/', '');
+        if (target.contains('setting') || target.contains('configura')) {
+          navigatorKey.currentState?.pushNamed('/settings');
+          setState(() {
+            _activityLog.add('[Tool] navigateTo(settings)');
+          });
+          return ToolResult.response('Navigated to settings');
+        } else if (target.contains('home') ||
+            target.contains('início') ||
+            target.contains('inicio')) {
+          navigatorKey.currentState?.pushNamed('/home');
+          setState(() {
+            _activityLog.add('[Tool] navigateTo(home)');
+          });
+          return ToolResult.response('Navigated to home');
+        } else {
+          setState(() {
+            _activityLog.add('[Tool] navigateTo unknown: ${input.screen}');
+          });
+          return ToolResult.response(
+              'Unknown screen: ${input.screen}. Available: "settings", "home".');
         }
       },
     );
@@ -162,7 +225,7 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
 
     try {
       final response = await ai.generate(
-        model: googleAI.gemini('gemini-2.5-flash-lite'),
+        model: googleAI.gemini('gemini-2.5-flash'),
         prompt:
             '''
 You are controlling a Flutter application.
@@ -208,88 +271,104 @@ ${_controller.text}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          width: 600,
-          padding: const EdgeInsets.all(32.0),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline,
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'FLUTTER GOES AI',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'What do you want to do?',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: '"Make this dark and open settings"',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _runCommand(),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _runCommand,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  '[ RUN ]',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 32),
-              if (_activityLog.isNotEmpty) ...[
-                const Text(
-                  'AI Activity',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
+      appBar: AppBar(
+        title: const Text('10. Remote Control Final'),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Container(
+                padding: const EdgeInsets.all(24.0),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 2,
                   ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _activityLog
-                        .map(
-                          (log) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4.0),
-                            child: Text(
-                              log,
-                              style: const TextStyle(fontFamily: 'monospace'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'FLUTTER GOES AI',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'What do you want to do?',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. "Make this dark and open settings"',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _runCommand(),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _runCommand,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              '[ RUN ]',
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                    ),
+                    if (_activityLog.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      const Text(
+                        'AI Activity',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: _activityLog
+                              .map(
+                                (log) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4.0),
+                                  child: Text(
+                                    log,
+                                    style: const TextStyle(fontFamily: 'monospace'),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         ),
       ),
