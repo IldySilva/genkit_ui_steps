@@ -365,36 +365,40 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 ---
 
 ### Step 4: Function Calling — The "Wow Moment"
-* **File:** `lib/steps/step4_tools.dart` (Runner: `lib/main_step4.dart`)
-* **Goal:** Turn normal Flutter methods into Genkit Tools. The model selects and invokes them.
+* **File:** `lib/steps/step4_tools.dart` (Runner: `lib/main_step4.dart` | Branch: `step/4-tools`)
+* **Goal:** Turn normal Flutter methods into Genkit Tools. The model selects and invokes them autonomously.
 * **Tools Defined:**
-  1. `changeTheme(color)` -> Parses hex string, updates seed color and recalculates luminance.
-  2. `navigateTo(screen)` -> Uses `navigatorKey.currentState?.pushNamed('/settings')`.
+  1. `changeTheme(color)` -> Parses hex string (`#1E1E1E`, `#00FF41`) or natural language color names (`dark`, `escuro`, `matrix`, `blue`, `green`, etc.), updating seed color and recalculating luminance.
+  2. `navigateTo(screen)` -> Normalized case-insensitive screen routing (`/settings`, `settings`, `configurações`, `/home`, `início`) using `navigatorKey.currentState?.pushNamed(...)`.
+* **Mobile & UI Enhancements:**
+  * Fully responsive `LayoutBuilder`: side-by-side on wide screens (>650px), stacked scrollable column on mobile phones.
+  * Quick Prompts Action Chips for instantaneous 1-tap demonstration without typing on mobile keyboards.
+  * Live Activity Console with clear button and step-by-step tag logs (`[AI]`, `[Tool]`, `[Done]`).
 * **Code:**
   ```dart
   final changeThemeTool = ai.defineTool(
     name: 'changeTheme',
-    description: 'Changes visual theme color when user asks to alter appearance.',
+    description: 'Changes visual theme of the Flutter app. Accepts hex color or color names.',
     inputSchema: ChangeThemeInput.$schema,
     fn: (input, _) async {
       widget.onThemeChanged(input.color);
-      return 'Theme changed to ${input.color}';
+      return ToolResult.response('Theme changed to ${input.color}');
     },
   );
 
   await ai.generate(
-    model: googleAI.gemini('gemini-2.5-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash'),
     prompt: 'Make the app dark and gloomy and open settings.',
     tools: [changeThemeTool, navigateTool],
   );
   ```
 * **The Live Interaction:**
-  * Speaker types: `"Make the app dark and gloomy and open settings"`
+  * Speaker taps chip or types: `"Make the app dark and gloomy and open settings"`
   * The terminal inspects:
     ```text
     AI ACTIVITY
-    [AI] Understanding request...
-    [Tool] changeTheme: #121212
+    [AI] Understanding request: "Make the app dark and gloomy and open settings."
+    [Tool] changeTheme: #1E1E1E
     [Tool] navigateTo(settings)
     [Done] Request completed
     ```
