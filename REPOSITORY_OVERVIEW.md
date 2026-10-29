@@ -511,13 +511,11 @@ When the user asks to open settings or home, call navigateTo.''',
   await _subscription?.cancel();
   ```
 * **UI Layout & Visual Experience:**
-  * Real-time generation area with an active **[Cancel Stream]** button.
-  * Side terminal logging middleware lifecycle events:
-    ```text
-    [Middleware] Calling model with 1 message(s)...
-    [Middleware] Model responded in 382ms
-    [Cancelled] User canceled stream generation mid-way.
-    ```
+  * **Mobile-First Responsive Layout:** Stacked scrollable column on mobile (<650px) and side-by-side on wide screens.
+  * **Quick Prompts Action Chips:** Instant 1-tap testing (`Flutter History`, `AI Agents Future`, `Developer Story`).
+  * **Streaming Output Panel:** Live token rendering, word count badge, and animated streaming progress indicator.
+  * **Middleware & Event Console:** Monospace terminal with color-coded tags (`[Middleware]`, `[Stream]`, `[Done]`, `[Cancelled]`, `[Error]`) and a log clear button.
+  * Model: `gemini-2.5-flash` with automatic retry (`retry(maxRetries: 2)`).
 * **Speaker Script:**
   > *"In production, users don't wait forever. If a response takes too long, they hit Cancel. With Genkit Dart, you can abort streams on demand and intercept calls with reusable middlewares for logging, security guardrails, and automated retries."*
 * **Key Takeaway for Slides:**
