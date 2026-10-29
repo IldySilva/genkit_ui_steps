@@ -53,7 +53,7 @@ final ai = Genkit(
   plugins: [
     googleAI(apiKey: const String.fromEnvironment('GEMINI_API_KEY')),
   ],
-  model: googleAI.gemini('gemini-3.1-flash-lite'), // Optional default model
+  model: googleAI.gemini('gemini-2.5-flash-lite'), // Optional default model
 );
 ```
 * **Benefit:** You can swap models, change providers (e.g. Gemini Cloud vs. Gemma on-device), or attach telemetry without refactoring business logic.
@@ -161,12 +161,12 @@ final conciergeAgent = ai.defineAgent(
 
 ---
 
-## 4. Offline & On-Device AI: The `genkit_flutter_edge_ai` Package
+## 4. Offline & On-Device AI: `genkit_llamadart` & `Qwen3.5-0.8B` Local GGUF
 
 ### How to Position It on Stage:
-> *"What if you are in airplane mode, or working in healthcare/finance where no byte can leave the device?*
-> *While `genkit_google_genai` powers our cloud calls, there is an incredible community package called **`genkit_flutter_edge_ai`**.*
-> *It is not an official Google package, but it is built on top of the Flutter Edge AI ecosystem (formerly `flutter_gemma`) by active community contributors. It is well-maintained, robust, and shows the true strength of Genkit: **The tools and UI code stay identical; only the model provider changes.**"*
+> *"What if you are in airplane mode, or working in healthcare, defense, or privacy-critical finance where no byte can leave the device?*
+> *While `genkit_google_genai` powers our cloud calls with Gemini 2.5, Genkit Dart provides first-class support for on-device inference via **`genkit_llamadart`**.*
+> *By loading a compact local quantized model like **Qwen3.5-0.8B (IQ4_NL)** directly into the Flutter process, we achieve offline, zero-latency inference accelerated by Apple Metal (macOS/iOS) or Vulkan (Linux/Windows). The tools, schemas, and UI code stay 100% identical; only the model provider plugin changes."*
 
 ```text
                           FLUTTER APPLICATION
@@ -177,46 +177,48 @@ final conciergeAgent = ai.defineAgent(
               ┌────────────────────┴────────────────────┐
               ▼                                         ▼
       CLOUD PROVIDER                             EDGE PROVIDER
-   genkit_google_genai                       genkit_flutter_edge_ai
-  (gemini-3.1-flash-lite)                     (Gemma 2B / Qwen / Phi)
+   genkit_google_genai                          genkit_llamadart
+  (gemini-2.5-flash-lite)                  (Qwen3.5-0.8B GGUF / llama.cpp)
               │                                         │
-       Google Servers                        On-Device (LiteRT-LM / GPU)
+       Google Servers                        On-Device (Metal / CPU / GPU)
 ```
 
-### What `genkit_flutter_edge_ai` Offers:
-* **True On-Device Inference:** Uses **LiteRT-LM** (Google LiteRT) or **MediaPipe** under the hood to run local GGUF/LiteRT models directly on mobile GPUs/NPUs.
-* **Full Tool / Function Calling Support:** Local models can trigger Genkit tools with parallel calls and strict `toolChoice` (`auto`, `required`, `none`).
-* **Structured Output Support:** Guarantees typed JSON parsing directly on-device using Genkit schemas.
-* **Context Trimming Middleware (`trimContext`):** Automatically truncates conversation history to fit mobile KV-cache constraints and prevent memory exhaustion.
-* **Thinking Mode & Multimodal:** Supports modern reasoning models (DeepSeek-R1 distillations, Qwen, Gemma) and on-device vision input.
+### What `genkit_llamadart` Delivers:
+* **True On-Device Native Inference:** Uses `llama.cpp` through Dart Native Assets (`llamadart`).
+* **Hardware Acceleration:** Automatically taps into Metal (Apple Silicon macOS/iOS), Vulkan (Linux/Windows), and CPU fallbacks.
+* **Hermes / Qwen Tool Grammar:** Constrains tool calling via GBNF grammars directly in the C++ engine to emit validated JSON tool invocations.
+* **Pre-bundled or Downloaded GGUFs:** Supports local assets (such as `assets/Qwen3.5-0.8B-IQ4_NL.gguf`), remote Hugging Face endpoints (`hf://...`), or direct HTTP streams with caching and progress tasks (`prepareModelTask`).
+* **Alternative Edge Option:** For developers targeting LiteRT-LM / MediaPipe bundles (e.g., Gemma 4 E2B), `genkit_flutter_edge_ai` is also available in the Dart ecosystem.
 
-### Integration Example:
+### Local Integration in this Repository:
 ```dart
-import 'package:flutter_edge_ai/flutter_edge_ai.dart';
-import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
+import 'dart:io';
 import 'package:genkit/genkit.dart';
-import 'package:genkit_flutter_edge_ai/genkit_flutter_edge_ai.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
 
-void setupEdgeGenkit() async {
-  // 1. Initialize Flutter Edge AI Engine
-  await FlutterEdgeAi.initialize(
-    inferenceEngines: const [LiteRtLmEngine()],
-  );
+// 1. Initialize llamaDart plugin with the local GGUF weights
+final plugin = llamaDart(
+  models: [
+    LlamaModelDefinition(
+      name: 'local-qwen',
+      modelPath: File('assets/Qwen3.5-0.8B-IQ4_NL.gguf').absolute.path,
+      modelParams: const ModelParams(
+        contextSize: 4096,
+      ),
+      supportsTools: true,
+    ),
+  ],
+);
 
-  // 2. Download or point to local model
-  await FlutterEdgeAi.installModel(
-    modelType: ModelType.gemma4,
-    fileType: ModelFileType.litertlm,
-  ).fromNetwork('https://huggingface.co/.../model.litertlm').install();
+// 2. Instantiate Genkit with the local plugin
+final ai = Genkit(plugins: [plugin]);
 
-  // 3. Invoke via Genkit with the exact same tools!
-  final ai = Genkit();
-  final response = await ai.generate(
-    model: flutterEdgeAi.model('gemma-4-e2b'),
-    prompt: 'Make the app dark and navigate to settings.',
-    toolNames: [changeThemeTool.name, navigateTool.name],
-  );
-}
+// 3. Invoke with the EXACT SAME Flutter tools!
+final response = await ai.generate(
+  model: llamaDart.model('local-qwen'),
+  prompt: 'Change the theme color to #121212.',
+  tools: [changeThemeTool, navigateTool],
+);
 ```
 
 ---
@@ -225,6 +227,8 @@ void setupEdgeGenkit() async {
 
 ```text
 genkit/
+├── assets/
+│   └── Qwen3.5-0.8B-IQ4_NL.gguf     # Local quantized GGUF weights (483MB) for Step 5 on-device AI (git-ignored)
 ├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, genkit_middleware, schemantic)
 ├── .env                             # Local environment variables (GEMINI_API_KEY) - Git ignored
 ├── .env.example                     # Example environment template for team/presentation
@@ -251,7 +255,7 @@ genkit/
 │       ├── step3_structured.g.dart  # Generated Schemantic code
 │       ├── step4_tools.dart         # Step 4: Function calling with activity inspector
 │       ├── step4_tools.g.dart       # Generated Schemantic code
-│       ├── step5_local.dart         # Step 5: Local model integration (llama.cpp)
+│       ├── step5_local.dart         # Step 5: Local model integration (Qwen 3.5 0.8B via genkit_llamadart)
 │       ├── step5_local.g.dart       # Generated Schemantic code
 │       ├── step6_embeddings.dart    # Step 6: Vector Embeddings & Semantic Search
 │       ├── step7_middlewares_cancellation.dart # Step 7: Custom Middleware & Stream Cancel
@@ -296,7 +300,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 ### Step 1: Basic AI (Call & Response)
 * **File:** `lib/steps/step1_basic.dart` (Runner: `lib/main_step1.dart`)
 * **Goal:** Prove communication between Flutter and Gemini with minimal lines of code.
-* **Model:** `gemini-3.1-flash-lite`
+* **Model:** `gemini-2.5-flash-lite`
 * **Code:**
   ```dart
   final ai = Genkit(
@@ -304,7 +308,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   );
 
   final response = await ai.generate(
-    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash-lite'),
     prompt: 'Explain Flutter in one sentence.',
   );
   print(response.text);
@@ -320,7 +324,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 * **Code:**
   ```dart
   final stream = ai.generateStream(
-    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash-lite'),
     prompt: 'Explain why Flutter is good for building AI applications.',
   );
 
@@ -347,7 +351,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   }
 
   final response = await ai.generate(
-    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash-lite'),
     prompt: 'User wants: "Make it dark and gloomy". Return theme configuration.',
     outputSchema: ThemeCommand.$schema,
   );
@@ -379,9 +383,9 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   );
 
   await ai.generate(
-    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash-lite'),
     prompt: 'Make the app dark and gloomy and open settings.',
-    toolNames: [changeThemeTool.name, navigateTool.name],
+    tools: [changeThemeTool, navigateTool],
   );
   ```
 * **The Live Interaction:**
@@ -402,25 +406,34 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
 
 ### Step 5: Local AI (Portability)
 * **File:** `lib/steps/step5_local.dart` (Runner: `lib/main_step5.dart`)
-* **Goal:** Demonstrate that Genkit abstracts the AI backend completely.
+* **Goal:** Demonstrate that Genkit abstracts the AI backend completely: zero-cloud offline execution on device.
+* **Model:** `Qwen3.5-0.8B-IQ4_NL.gguf` (483 MB, local quantized weights located in `assets/`)
+* **Package:** `genkit_llamadart` (v3.5.0) via `llamadart` (llama.cpp Native Assets with Apple Metal acceleration)
 * **Code:**
   ```dart
   final plugin = llamaDart(
-    models: const [
-      LlamaModelDefinition(name: 'local-chat', modelPath: '/models/model.gguf')
+    models: [
+      LlamaModelDefinition(
+        name: 'local-chat',
+        modelPath: File('assets/Qwen3.5-0.8B-IQ4_NL.gguf').absolute.path,
+        modelParams: const ModelParams(
+          contextSize: 4096,
+        ),
+        supportsTools: true,
+      ),
     ],
   );
   final ai = Genkit(plugins: [plugin]);
 
-  // Exact same generate call and tools!
+  // Exact same generate call and tools as cloud!
   await ai.generate(
     model: llamaDart.model('local-chat'),
     prompt: prompt,
-    toolNames: [changeThemeTool.name, navigateTool.name],
+    tools: [changeThemeTool, navigateTool],
   );
   ```
 * **Speaker Script:**
-  > *"The intelligence can move from cloud to device. The tools stay. The Flutter app stays. Genkit abstracts the runtime."*
+  > *"The intelligence can move seamlessly from cloud to device. The tools stay identical. The Flutter state management stays identical. Genkit completely abstracts the runtime, giving you offline privacy and zero server costs."*
 
 ---
 
@@ -576,7 +589,7 @@ Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (
   ```dart
   // Model prompt instructing tool usage
   await ai.generate(
-    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    model: googleAI.gemini('gemini-2.5-flash-lite'),
     prompt: '''
   You are controlling a Flutter application.
   You have access to tools that can change the theme and navigate between screens.
