@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'steps/step10_remote_control_final.dart' as step10;
+import 'steps/step7_middlewares_cancellation.dart' as step7;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  step10.main();
+  step7.main();
 }
