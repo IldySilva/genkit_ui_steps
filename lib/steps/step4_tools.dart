@@ -254,8 +254,11 @@ class _Step4ScreenState extends State<Step4Screen> {
     });
 
     try {
+      final modelName = dotenv.env['GEMINI_MODEL'] ??
+          const String.fromEnvironment('GEMINI_MODEL',
+              defaultValue: 'gemini-2.5-flash-lite');
       final response = await ai.generate(
-        model: googleAI.gemini('gemini-2.5-flash'),
+        model: googleAI.gemini(modelName),
         system: '''You are an AI assistant controlling a Flutter application.
 You have access to tools: changeTheme and navigateTo.
 When the user asks to change the theme, appearance, or color, call changeTheme with a hex color (e.g. #1E1E1E for dark, #00FF41 for matrix, #2196F3 for blue).
