@@ -225,18 +225,25 @@ void setupEdgeGenkit() async {
 
 ```text
 genkit/
-├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, schemantic)
+├── pubspec.yaml                     # Dependencies (genkit, genkit_google_genai, genkit_llamadart, genkit_middleware, schemantic)
+├── .env                             # Local environment variables (GEMINI_API_KEY) - Git ignored
+├── .env.example                     # Example environment template for team/presentation
 ├── macos/Runner/
 │   ├── DebugProfile.entitlements    # com.apple.security.network.client = true
 │   └── Release.entitlements         # com.apple.security.network.client = true
 ├── lib/
-│   ├── main.dart                    # Launches Step 7 by default
+│   ├── main.dart                    # Launches Step 10 (Master Remote Control) by default
 │   ├── main_step1.dart              # Direct runner for Step 1
 │   ├── main_step2.dart              # Direct runner for Step 2
 │   ├── main_step3.dart              # Direct runner for Step 3
 │   ├── main_step4.dart              # Direct runner for Step 4
 │   ├── main_step5.dart              # Direct runner for Step 5
+│   ├── main_step6.dart              # Direct runner for Step 6
 │   ├── main_step7.dart              # Direct runner for Step 7
+│   ├── main_step8.dart              # Direct runner for Step 8
+│   ├── main_step9.dart              # Direct runner for Step 9
+│   ├── main_step10.dart             # Direct runner for Step 10
+│   ├── main_step11.dart             # Direct runner for Step 11
 │   └── steps/
 │       ├── step1_basic.dart         # Step 1: Basic text generation
 │       ├── step2_streaming.dart     # Step 2: Streaming output
@@ -246,13 +253,19 @@ genkit/
 │       ├── step4_tools.g.dart       # Generated Schemantic code
 │       ├── step5_local.dart         # Step 5: Local model integration (llama.cpp)
 │       ├── step5_local.g.dart       # Generated Schemantic code
-│       ├── step7_final.dart         # Step 7: Consolidated Final Demo
-│       └── step7_final.g.dart       # Generated Schemantic code
+│       ├── step6_embeddings.dart    # Step 6: Vector Embeddings & Semantic Search
+│       ├── step7_middlewares_cancellation.dart # Step 7: Custom Middleware & Stream Cancel
+│       ├── step8_agent_interrupt.dart   # Step 8: Stateful Agent with Human-in-the-Loop Interrupts
+│       ├── step8_agent_interrupt.g.dart # Generated Schemantic code
+│       ├── step9_multi_agent_sessions.dart    # Step 9: Multi-Agent & Snapshot Sessions
+│       ├── step10_remote_control_final.dart   # Step 10: Master UI Remote Control Production Demo
+│       ├── step10_remote_control_final.g.dart # Generated Schemantic code
+│       └── step11_a2ui.dart         # Step 11: A2UI Generative UI (Dynamic Surfaces via genui)
 ```
 
 ---
 
-## 6. The 7 Progressive Steps (Slide-by-Slide Narrative)
+## 6. The 11 Progressive Steps (Slide-by-Slide Narrative)
 
 ```text
 Step 1: Basic AI           -> AI as a remote string function (blocks UI)
@@ -265,9 +278,17 @@ Step 4: Function Calling   -> AI chooses capabilities (changeTheme, navigateTo) 
        ↓
 Step 5: Local AI           -> Same tools & UI, run on-device (llamadart / flutter_edge_ai)
        ↓
-Step 6: Deploy Everywhere  -> Flows on mobile, web, and backend services
+Step 6: Vector Embeddings  -> Semantic search & cosine similarity without hallucinations
        ↓
-Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with live inspector
+Step 7: Middlewares        -> Intercepting models, measuring latency, retries & live cancel
+       ↓
+Step 8: Agents & Safety    -> Human-in-the-Loop Interrupts for sensitive actions
+       ↓
+Step 9: Multi-Agent & Sessions -> Orchestrator delegating to sub-agents & snapshot rewinds
+       ↓
+Step 10: Master Remote Control -> The complete, consolidated production app
+       ↓
+Step 11: A2UI Generative UI     -> "One More Thing": Dynamic JSON UI streaming (`genui` Surfaces)
 ```
 
 ---
@@ -403,38 +424,265 @@ Step 7: Final Demo         -> Consolidated Material 3 Remote Control UI with liv
 
 ---
 
-### Step 6: Deploy Everywhere (Flows & Architecture)
-* **Goal:** Explain how Genkit Flows decouple AI logic into reusable services.
-* **Concept:**
-  ```text
-                   GENKIT FLOW (Service Layer)
-                               │
-            ┌──────────────────┼──────────────────┐
-            ▼                  ▼                  ▼
-       Mobile (Flutter)   Web (Flutter)      Cloud Server
-       Local Execution    Local Execution    (Shelf / Dart Frog)
+### Step 6: Vector Embeddings & Semantic Search
+* **File:** `lib/steps/step6_embeddings.dart` (Runner: `lib/main_step6.dart` or branch `step/6-embeddings`)
+* **Goal:** Demonstrate `ai.embed` with `googleAI.textEmbedding('text-embedding-004')` to achieve 0-hallucination semantic matching using cosine similarity in pure Dart.
+* **Code Implementation:**
+  ```dart
+  // 1. Pre-index theme catalog into 768-dimension vectors
+  final embeddings = await ai.embed(
+    documents: _catalog.map((item) => DocumentData(content: [TextPart(text: '${item.title}: ${item.description}')])).toList(),
+    embedder: googleAI.textEmbedding('text-embedding-004'),
+  );
+
+  // 2. Embed user query (e.g. "somewhere cold and rainy")
+  final queryEmbed = await ai.embed(
+    documents: [DocumentData(content: [TextPart(text: userQuery)])],
+    embedder: googleAI.textEmbedding('text-embedding-004'),
+  );
+
+  // 3. Compute cosine similarity in Dart
+  final similarity = cosineSimilarity(queryEmbed.first.embedding, item.embedding);
   ```
+* **UI Layout & Visual Experience:**
+  * Left: Search input field and list of indexed theme items with live green check indicators.
+  * Right: Real-time progress bars showing similarity percentages (e.g., `Autumn Forest & Rain: 88.4%`, `Cyberpunk Neon: 42.1%`).
+  * Automatically applies the highest-scoring theme without LLM generation latency or risk of made-up hex codes.
 * **Speaker Script:**
-  > *"You don't have to keep AI logic locked inside a single Flutter screen. Wrap it into a Genkit Flow. Run it directly in the app, or deploy it to a server and call it over streaming RPCs."*
+  > *"Not every problem requires generating prose. Sometimes what you need is semantic search. With `ai.embed`, we generate mathematical vector embeddings and compute cosine similarity in pure Dart without hallucination risk."*
+* **Key Takeaway for Slides:**
+  * "Embeddings translate fuzzy human concepts into mathematical distances in milliseconds."
 
 ---
 
-### Step 7: Final Polished Demo
-* **File:** `lib/steps/step7_final.dart` (Default: `lib/main.dart` or `lib/main_step7.dart`)
-* **Goal:** Consolidated production-grade UI with Material 3 dynamic color scheme, clear prompt suggestions, and an AI Activity Inspector.
-* **System Prompt:**
-  ```text
+### Step 7: Custom Middlewares, Retries & Stream Cancellation
+* **File:** `lib/steps/step7_middlewares_cancellation.dart` (Runner: `lib/main_step7.dart` or branch `step/7-middlewares`)
+* **Goal:** Master generation lifecycles: cancelling ongoing streams in real time and intercepting requests with custom Genkit middlewares.
+* **Code Implementation:**
+  ```dart
+  // 1. Custom timing middleware
+  class LatencyLoggingMiddleware extends GenerateMiddleware {
+    @override
+    Future<ModelResponse> model(request, ctx, next) async {
+      final sw = Stopwatch()..start();
+      final res = await next(request, ctx);
+      sw.stop();
+      print('Model latency: ${sw.elapsedMilliseconds}ms');
+      return res;
+    }
+  }
+
+  // 2. Cancellation via StreamSubscription
+  _subscription = ai.generateStream(
+    prompt: prompt,
+    use: [latencyMiddleware(), retry(maxRetries: 2)],
+  ).listen((chunk) => setState(() => text += chunk.text));
+
+  // User hits [Cancel Stream]:
+  await _subscription?.cancel();
+  ```
+* **UI Layout & Visual Experience:**
+  * Real-time generation area with an active **[Cancel Stream]** button.
+  * Side terminal logging middleware lifecycle events:
+    ```text
+    ⏱️ [Middleware] Calling model with 1 message(s)...
+    ⏱️ [Middleware] Model responded in 382ms
+    🛑 [Cancellation] User canceled stream generation mid-way.
+    ```
+* **Speaker Script:**
+  > *"In production, users don't wait forever. If a response takes too long, they hit Cancel. With Genkit Dart, you can abort streams on demand and intercept calls with reusable middlewares for logging, security guardrails, and automated retries."*
+* **Key Takeaway for Slides:**
+  * "Reliability = Interceptors (Middleware) + Fault Tolerance (Retry) + User Control (Cancellation)."
+
+---
+
+### Step 8: Stateful Agent with Human-in-the-Loop Interrupts (Experimental Beta)
+* **File:** `lib/steps/step8_agent_interrupt.dart` (Runner: `lib/main_step8.dart` or branch `step/8-agents`)
+* **Goal:** Demonstrate enterprise safety with **`ai.defineAgent`** and **Tool Interrupts** (`ToolResult.interrupt(...)`).
+* **Concept:**
+  When the user asks for a high-risk or destructive operation (e.g., *"Reset all application data and set theme to Red"*), the agent does NOT execute blindly. It yields an **Interrupt**. Flutter intercepts `res.interrupts`, displays a native security confirmation dialog, and upon approval resumes the turn via `chat.resume(...)`.
+* **Code Implementation:**
+  ```dart
+  import 'package:genkit/experimental.dart';
+
+  final resetSettingsTool = ai.defineTool(
+    name: 'resetSettings',
+    description: 'DANGEROUS ACTION: Resets all app settings. Requires human approval.',
+    inputSchema: ResetSettingsInput.$schema,
+    fn: (input, _) async => ToolResult.interrupt({
+      'action': 'resetSettings',
+      'reason': input.reason,
+    }),
+  );
+
+  final assistantAgent = ai.defineAgent(
+    name: 'assistantAgent',
+    system: 'You are a Flutter controller agent with human-in-the-loop approval.',
+    tools: [changeThemeTool, resetSettingsTool],
+    store: InMemorySessionStore(),
+  );
+
+  // Execute in Flutter:
+  final chat = assistantAgent.chat();
+  final res = await chat.send(text: 'Reset all application data');
+  if (res.interrupts.isNotEmpty) {
+    // Show Flutter AlertDialog -> if approved:
+    await chat.resume(
+      respond: [res.interrupts.first.respond({'approved': true})],
+    );
+  }
+  ```
+* **Speaker Script:**
+  > *"What happens when the AI wants to do something dangerous? It doesn't run arbitrary code. It triggers an Interrupt. The agent pauses, hands control back to Flutter, we ask the human for approval in a native dialog, and upon confirmation, the agent resumes execution seamlessly."*
+* **Key Takeaway for Slides:**
+  * "Agents loop and reason; interrupts keep humans firmly in control."
+
+---
+
+### Step 9: Multi-Agent Orchestration & Snapshot Persistence
+* **File:** `lib/steps/step9_multi_agent_sessions.dart` (Runner: `lib/main_step9.dart` or branch `step/9-multi-agent`)
+* **Goal:** Sub-agent delegation using `AgentsPlugin` (`package:genkit_middleware`) and session rewinding via immutable snapshots.
+* **Code Implementation:**
+  ```dart
+  // 1. Specialized Sub-agents
+  final stylist = ai.defineAgent(name: 'stylist', description: 'Color and style expert');
+  final navigator = ai.defineAgent(name: 'navigator', description: 'Screen routing expert');
+
+  // 2. Orchestrator with delegation middleware
+  final orchestrator = ai.defineAgent(
+    name: 'orchestrator',
+    use: [agents(agents: ['stylist', 'navigator'])],
+    store: InMemorySessionStore(),
+  );
+
+  // 3. Rewind to prior turn via snapshot ID:
+  final restoredChat = await orchestrator.loadChat(snapshotId: priorSnapshotId);
+  ```
+* **UI Layout & Visual Experience:**
+  * Multi-turn chat box displaying conversations with the Orchestrator.
+  * Side panel showing the chain of **Session Snapshots** (`Turn 1`, `Turn 2`, `Turn 3`) with a **[Rewind]** button.
+  * Clicking "Rewind" restores the entire agent state and conversation history to that exact moment in time.
+* **Speaker Script:**
+  > *"As applications grow, one prompt can't do everything. We divide responsibilities among specialized sub-agents and keep immutable session snapshots, allowing users to rewind conversation history at will."*
+* **Key Takeaway for Slides:**
+  * "Orchestrators coordinate specialists. Snapshots provide conversation time-travel."
+
+---
+
+### Step 10: Master UI Remote Control Production Demo
+* **File:** `lib/steps/step10_remote_control_final.dart` (Default: `lib/main.dart` or `lib/main_step10.dart` | Branch: `step/10-remote-control`)
+* **Goal:** The ultimate production-grade showcase consolidating the core thesis: AI seamlessly steering a multi-screen Flutter application with real-time feedback.
+* **Code Implementation:**
+  ```dart
+  // Model prompt instructing tool usage
+  await ai.generate(
+    model: googleAI.gemini('gemini-3.1-flash-lite'),
+    prompt: '''
   You are controlling a Flutter application.
   You have access to tools that can change the theme and navigate between screens.
   When the user asks to change the visual appearance, use the changeTheme tool.
   When the user asks to open another screen, use the navigateTo tool.
+
+  User request:
+  ${_controller.text}
+  ''',
+    toolNames: [changeThemeTool.name, navigateTool.name],
+  );
   ```
+* **UI Layout & Visual Experience:**
+  * Centered Material 3 card (width: 600) with dynamic theme luminance recalculation.
+  * Fast action buttons (`[ RUN ]`) and prompt suggestions:
+    * *"Make the app dark and gloomy and open settings"*
+    * *"Make it feel like a cyberpunk application"*
+  * Monospace dark terminal showing live execution checkmarks:
+    ```text
+    ✓ changeTheme(#151515)
+    ✓ navigateTo(settings)
+    ```
+* **Speaker Script:**
+  > *"This is the culmination of our thesis: a complete, production-ready Flutter app where navigation, visual style, and behavior are controlled via natural language without sacrificing UI stability or predictability."*
+* **Key Takeaway for Slides:**
+  * "Flutter owns the UI remote control. AI provides the intent translation."
+
+---
+
+### Step 11: The Next Frontier: A2UI Generative UI (Dynamic Surfaces via `genkit_a2ui` & `genui`)
+* **File:** `lib/steps/step11_a2ui.dart` (Runner: `lib/main_step11.dart` or branch `step/11-a2ui`)
+* **Goal:** "One More Thing..." — Understand the fundamental evolution beyond Remote Control: **Generative UI (A2UI - Agent to UI)**.
+* **The Conceptual Distinction (Essential for Presentation!):**
+  * **Remote Control (Steps 4 & 10):** Flutter UI is rigid and pre-compiled. The AI cannot invent a new widget; it can only invoke developer-supplied tools (`changeTheme`, `navigateTo`).
+  * **A2UI Generative UI (Step 11):** The AI dynamically describes the UI itself! It streams structured `application/a2ui+json` envelopes. Flutter's `genui` package listens to these envelopes and renders native Flutter widgets (Cards, Buttons, Forms, Columns) on a dynamic `Surface` widget in real time.
+* **Packages Used:**
+  * `genkit_a2ui: ^0.4.1` (Middleware injecting A2UI prompt schema and parsing streaming parts)
+  * `genui: ^0.10.4` (Flutter widget catalog and dynamic surface renderer)
+  * `a2ui_core: ^0.1.1` (Core A2UI message protocol types)
+* **Code Implementation:**
+  ```dart
+  // 1. Initialize SurfaceController with standard GenUI catalog:
+  final _surfaceController = SurfaceController(catalogs: [CoreCatalogItems.catalog]);
+
+  // 2. Stream generation with a2ui() middleware:
+  final stream = ai.generateStream(
+    model: googleAI.gemini('gemini-2.5-flash'),
+    prompt: 'Create a survey form with a text input and submit button.',
+    use: [a2ui()],
+  );
+
+  // 3. Forward streaming envelopes directly to Flutter SurfaceController:
+  await for (final chunk in stream) {
+    final envelopes = a2uiEnvelopesFromParts(chunk.content);
+    for (final envelope in envelopes) {
+      _surfaceController.handleMessage(A2uiMessage.fromJson(envelope));
+    }
+  }
+
+  // 4. Render dynamic surfaces in the Flutter widget tree:
+  Surface(
+    controller: _surfaceController,
+    surfaceId: surfaceId,
+  );
+  ```
+* **UI Layout & Visual Experience:**
+  * Interactive prompt bar with one-click presets:
+    * *"Create a survey card with questions and a rating bar"*
+    * *"Generate a checkout summary card with a Pay button"*
+    * *"Build a flight boarding pass surface"*
+  * Below the prompt, Flutter dynamically paints native Material widgets sent by Gemini as pure JSON instructions.
+  * Side-by-side terminal inspector showing incoming A2UI envelopes vs rendered UI.
+* **Speaker Script:**
+  > *"So far, AI was controlling our existing Flutter screens like a remote control. But what if the user needs a screen that doesn't exist yet? With A2UI (Agent-to-UI), the AI dynamically designs and streams the UI components in JSON, and Flutter's GenUI catalog renders them natively at runtime."*
+* **Key Takeaway for Slides:**
+  * "Remote Control = AI clicks our buttons. A2UI = AI creates the buttons."
 
 ---
 
 ## 7. How to Run Each Demo
 
-You can present using either of two workflows:
+### ⚡ Quick-Switch via Makefile (Fastest for Live Stage Presentation!)
+A presentation `Makefile` is committed across every branch. You can seamlessly jump between steps with short, memorable commands:
+
+```bash
+make step1    # Switch to Step 1: Basic AI (Call & Response)
+make step2    # Switch to Step 2: Streaming Tokens into UI
+make step3    # Switch to Step 3: Structured Output (schemantic)
+make step4    # Switch to Step 4: Function Calling [THE WOW MOMENT]
+make step5    # Switch to Step 5: Local On-Device AI (llamadart)
+make step6    # Switch to Step 6: Vector Embeddings & Similarity Search
+make step7    # Switch to Step 7: Custom Middlewares, Retries & Cancellation
+make step8    # Switch to Step 8: Stateful Agents & Interrupts (Human-in-the-Loop)
+make step9    # Switch to Step 9: Multi-Agent Delegation & Snapshot Rewind
+make step10   # Switch to Step 10: Master UI Remote Control (Production Demo)
+make step11   # Switch to Step 11: A2UI Generative UI (Dynamic Surfaces)
+make main     # Return to main branch
+
+make run      # Run current branch (flutter run -d macos)
+make status   # Check current branch and git status
+make help     # Show the interactive presentation menu
+```
+
+---
+
+You can also present using either of the traditional manual workflows:
 
 ### Workflow A: Git Branch Switching (Recommended for clean live demos)
 Each step has its own dedicated Git branch where `lib/main.dart` points directly to that step's code. Keys are automatically read from the root `.env` via `flutter_dotenv`:
@@ -460,8 +708,28 @@ flutter run -d macos
 git checkout step/5-local
 flutter run -d macos
 
-# Step 7: Final Consolidated Demo
-git checkout step/7-final
+# Step 6: Vector Embeddings & Semantic Search
+git checkout step/6-embeddings
+flutter run -d macos
+
+# Step 7: Custom Middlewares & Stream Cancellation
+git checkout step/7-middlewares
+flutter run -d macos
+
+# Step 8: Stateful Agents & Interrupts (Human-in-the-Loop)
+git checkout step/8-agents
+flutter run -d macos
+
+# Step 9: Multi-Agent Delegation & Snapshot Rewind
+git checkout step/9-multi-agent
+flutter run -d macos
+
+# Step 10: Master UI Remote Control Production Demo
+git checkout step/10-remote-control
+flutter run -d macos
+
+# Step 11: A2UI Generative UI
+git checkout step/11-a2ui
 flutter run -d macos
 ```
 
@@ -475,9 +743,14 @@ flutter run -t lib/main_step2.dart -d macos
 flutter run -t lib/main_step3.dart -d macos
 flutter run -t lib/main_step4.dart -d macos
 flutter run -t lib/main_step5.dart -d macos
+flutter run -t lib/main_step6.dart -d macos
 flutter run -t lib/main_step7.dart -d macos
+flutter run -t lib/main_step8.dart -d macos
+flutter run -t lib/main_step9.dart -d macos
+flutter run -t lib/main_step10.dart -d macos
+flutter run -t lib/main_step11.dart -d macos
 
-# Default main (runs Step 7):
+# Default main (runs Step 10 Master Remote Control):
 flutter run -d macos
 ```
 
