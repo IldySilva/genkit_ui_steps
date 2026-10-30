@@ -41,6 +41,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_dotenv: ^6.0.1
+  genkit_middleware: ^1.0.1
+  genkit_a2ui: ^0.4.1
+  genui: ^0.10.4
+  a2ui_core: ^0.1.1
 
 dev_dependencies:
   flutter_test:
