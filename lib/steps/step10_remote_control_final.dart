@@ -100,6 +100,17 @@ class FinalDemoAppState extends State<FinalDemoApp> {
     });
   }
 
+  void navigateTo(String screen) {
+    final target = screen.trim().toLowerCase().replaceAll('/', '');
+    if (target.contains('setting') || target.contains('configura')) {
+      navigatorKey.currentState?.pushNamed('/settings');
+    } else if (target.contains('home') ||
+        target.contains('início') ||
+        target.contains('inicio')) {
+      navigatorKey.currentState?.pushNamed('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -117,7 +128,10 @@ class FinalDemoAppState extends State<FinalDemoApp> {
       ),
       initialRoute: '/home',
       routes: {
-        '/home': (context) => FinalDemoScreen(onThemeChanged: changeTheme),
+        '/home': (context) => FinalDemoScreen(
+              onThemeChanged: changeTheme,
+              onNavigate: navigateTo,
+            ),
         '/settings': (context) => const SettingsScreen(),
       },
     );
@@ -140,8 +154,13 @@ class SettingsScreen extends StatelessWidget {
 
 class FinalDemoScreen extends StatefulWidget {
   final Function(String) onThemeChanged;
+  final Function(String) onNavigate;
 
-  const FinalDemoScreen({super.key, required this.onThemeChanged});
+  const FinalDemoScreen({
+    super.key,
+    required this.onThemeChanged,
+    required this.onNavigate,
+  });
 
   @override
   State<FinalDemoScreen> createState() => _FinalDemoScreenState();
@@ -186,31 +205,15 @@ class _FinalDemoScreenState extends State<FinalDemoScreen> {
 
     navigateTool = ai.defineTool(
       name: 'navigateTo',
-      description: 'Navigates to another screen in the Flutter application ("settings" or "home").',
+      description:
+          'Navigates to another screen in the Flutter application ("settings" or "home").',
       inputSchema: NavigateInput.$schema,
       fn: (input, _) async {
-        final target = input.screen.trim().toLowerCase().replaceAll('/', '');
-        if (target.contains('setting') || target.contains('configura')) {
-          navigatorKey.currentState?.pushNamed('/settings');
-          setState(() {
-            _activityLog.add('[Tool] navigateTo(settings)');
-          });
-          return ToolResult.response('Navigated to settings');
-        } else if (target.contains('home') ||
-            target.contains('início') ||
-            target.contains('inicio')) {
-          navigatorKey.currentState?.pushNamed('/home');
-          setState(() {
-            _activityLog.add('[Tool] navigateTo(home)');
-          });
-          return ToolResult.response('Navigated to home');
-        } else {
-          setState(() {
-            _activityLog.add('[Tool] navigateTo unknown: ${input.screen}');
-          });
-          return ToolResult.response(
-              'Unknown screen: ${input.screen}. Available: "settings", "home".');
-        }
+        widget.onNavigate(input.screen);
+        setState(() {
+          _activityLog.add('[Tool] navigateTo(${input.screen})');
+        });
+        return ToolResult.response('Navigated to ${input.screen}');
       },
     );
   }

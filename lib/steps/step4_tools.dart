@@ -101,6 +101,17 @@ class Step4AppState extends State<Step4App> {
     });
   }
 
+  void navigateTo(String screen) {
+    final target = screen.trim().toLowerCase().replaceAll('/', '');
+    if (target.contains('setting') || target.contains('configura')) {
+      navigatorKey.currentState?.pushNamed('/settings');
+    } else if (target.contains('home') ||
+        target.contains('início') ||
+        target.contains('inicio')) {
+      navigatorKey.currentState?.pushNamed('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -116,7 +127,10 @@ class Step4AppState extends State<Step4App> {
       ),
       initialRoute: '/home',
       routes: {
-        '/home': (context) => Step4Screen(onThemeChanged: changeTheme),
+        '/home': (context) => Step4Screen(
+              onThemeChanged: changeTheme,
+              onNavigate: navigateTo,
+            ),
         '/settings': (context) => const SettingsScreen(),
       },
     );
@@ -157,8 +171,13 @@ class SettingsScreen extends StatelessWidget {
 
 class Step4Screen extends StatefulWidget {
   final Function(String) onThemeChanged;
+  final Function(String) onNavigate;
 
-  const Step4Screen({super.key, required this.onThemeChanged});
+  const Step4Screen({
+    super.key,
+    required this.onThemeChanged,
+    required this.onNavigate,
+  });
 
   @override
   State<Step4Screen> createState() => _Step4ScreenState();
@@ -206,28 +225,11 @@ class _Step4ScreenState extends State<Step4Screen> {
           'Navigates to another screen in the Flutter application ("settings" or "home").',
       inputSchema: NavigateInput.$schema,
       fn: (input, _) async {
-        final target = input.screen.trim().toLowerCase().replaceAll('/', '');
-        if (target.contains('setting') || target.contains('configura')) {
-          navigatorKey.currentState?.pushNamed('/settings');
-          setState(() {
-            _activityLog.add('[Tool] navigateTo(settings)');
-          });
-          return ToolResult.response('Navigated to settings');
-        } else if (target.contains('home') ||
-            target.contains('início') ||
-            target.contains('inicio')) {
-          navigatorKey.currentState?.pushNamed('/home');
-          setState(() {
-            _activityLog.add('[Tool] navigateTo(home)');
-          });
-          return ToolResult.response('Navigated to home');
-        } else {
-          setState(() {
-            _activityLog.add('[Tool] navigateTo unknown: ${input.screen}');
-          });
-          return ToolResult.response(
-              'Unknown screen: ${input.screen}. Available screens: "settings", "home".');
-        }
+        widget.onNavigate(input.screen);
+        setState(() {
+          _activityLog.add('[Tool] navigateTo(${input.screen})');
+        });
+        return ToolResult.response('Navigated to ${input.screen}');
       },
     );
   }
