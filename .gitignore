@@ -51,6 +51,7 @@ app.*.map.json
 
 # Presentation and speaker preparation notes
 PRESENTATION_SCRIPT*
+TELEPROMPTER*
 GENKIT_DART_DEEP_DIVE.md
 AUDIENCE_QA_CHEAT_SHEET.md
 
