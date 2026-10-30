@@ -50,7 +50,7 @@ app.*.map.json
 .widget_preview/
 
 # Presentation and speaker preparation notes
-PRESENTATION_SCRIPT*.md
+PRESENTATION_SCRIPT*
 GENKIT_DART_DEEP_DIVE.md
 AUDIENCE_QA_CHEAT_SHEET.md
 
