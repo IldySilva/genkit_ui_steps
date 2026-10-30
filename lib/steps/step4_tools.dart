@@ -103,11 +103,9 @@ class Step4AppState extends State<Step4App> {
 
   void navigateTo(String screen) {
     final target = screen.trim().toLowerCase().replaceAll('/', '');
-    if (target.contains('setting') || target.contains('configura')) {
+    if (target.contains('setting')) {
       navigatorKey.currentState?.pushNamed('/settings');
-    } else if (target.contains('home') ||
-        target.contains('início') ||
-        target.contains('inicio')) {
+    } else if (target.contains('home')) {
       navigatorKey.currentState?.pushNamed('/home');
     }
   }
