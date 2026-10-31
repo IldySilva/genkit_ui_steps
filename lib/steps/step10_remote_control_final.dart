@@ -276,7 +276,7 @@ ${_controller.text}
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('10. Remote Control Final'),
+        title: const Text('9. Master Remote Control'),
       ),
       body: SafeArea(
         child: Center(
