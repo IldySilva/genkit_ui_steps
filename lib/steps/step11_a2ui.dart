@@ -323,7 +323,7 @@ class _Step11ScreenState extends State<Step11Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('11. Generative UI'),
+        title: const Text('10. Generative UI'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
