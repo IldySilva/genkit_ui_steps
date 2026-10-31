@@ -429,7 +429,7 @@ class _Step8ScreenState extends State<Step8Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('8. Agent Interrupts'),
+        title: const Text('7. Agent Interrupts'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

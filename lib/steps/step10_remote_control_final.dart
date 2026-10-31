@@ -113,7 +113,7 @@ class FinalDemoAppState extends State<FinalDemoApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Goes AI - Step 10 (Master Remote Control)',
+      title: 'Flutter Goes AI - Step 9 (Master Remote Control)',
       navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -276,7 +276,7 @@ ${_controller.text}
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('10. Remote Control Final'),
+        title: const Text('9. Master Remote Control'),
       ),
       body: SafeArea(
         child: Center(

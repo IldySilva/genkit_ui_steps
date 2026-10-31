@@ -417,7 +417,7 @@ class _Step9ScreenState extends State<Step9Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('9. Multi-Agent & Sessions'),
+        title: const Text('8. Multi-Agent & Sessions'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
