@@ -364,7 +364,7 @@ class _Step7ScreenState extends State<Step7Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('7. Middlewares'),
+        title: const Text('6. Middlewares'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
